@@ -92,15 +92,6 @@ function checksum(msg)
   return msg + "^" + checkString;
 }
 
-exports.config = function() {
-  return config;
-};
-
-exports.status = function() {
-  status.srssi += 5 - (Math.floor(Math.random() * 11));
-  return status;
-};
-
 exports.rapi = function(rapi) {
 
   var dummyData = {

@@ -6,10 +6,69 @@ const path = require("path");
 const bodyParser = require("body-parser");
 const minimist = require("minimist");
 
-const simulator = require("./simulator_driver");
-const openevse = require("./openevse_driver");
+const openevse = require("./openevse");
 
-const driver = simulator;
+
+var config = {
+  "firmware": "-",
+  "protocol": "-",
+  "espflash": 4194304,
+  "version": "DEMO",
+  "diodet": 0,
+  "gfcit": 0,
+  "groundt": 0,
+  "relayt": 0,
+  "ventt": 0,
+  "tempt": 0,
+  "service": 2,
+  "scale": 220,
+  "offset": 0,
+  "ssid": "demo",
+  "pass": "___DUMMY_PASSWORD___",
+  "emoncms_enabled": false,
+  "emoncms_server": "emoncms.org",
+  "emoncms_node": "openevse",
+  "emoncms_apikey": "",
+  "emoncms_fingerprint": "",
+  "mqtt_enabled": true,
+  "mqtt_server": "emonpi.local",
+  "mqtt_topic": "openevse",
+  "mqtt_user": "emonpi",
+  "mqtt_pass": "___DUMMY_PASSWORD___",
+  "mqtt_solar": "emon/emonpi/power1",
+  "mqtt_grid_ie": "",
+  "www_username": "",
+  "www_password": "",
+  "ohm_enabled": false
+};
+
+var status = {
+  "mode": "STA",
+  "wifi_client_connected": 1,
+  "srssi": -50,
+  "ipaddress": "172.16.0.191",
+  "emoncms_connected": 0,
+  "packets_sent": 0,
+  "packets_success": 0,
+  "mqtt_connected": 1,
+  "ohm_hour": "NotConnected",
+  "free_heap": 20816,
+  "comm_sent": 1077,
+  "comm_success": 1075,
+  "amp": 27500,
+  "pilot": 32,
+  "temp1": 247,
+  "temp2": 0,
+  "temp3": 230,
+  "state": 3,
+  "elapsed": 10790,
+  "wattsec": 71280000,
+  "watthour": 72970,
+  "gfcicount": 0,
+  "nogndcount": 0,
+  "stuckcount": 0,
+  "divertmode": 1
+};
 
 let args = minimist(process.argv.slice(2), {
   alias: {
@@ -20,7 +79,7 @@ let args = minimist(process.argv.slice(2), {
     help: false,
     version: false,
     port: 3000,
-    driver: false
+    endpoint: "simulator"
   },
 });
 
@@ -30,7 +89,7 @@ if(args.help) {
 }
 
 if(args.version) {
-  console.log(driver.config().version);
+  console.log(config.version);
   return 0;
 }
 
@@ -38,6 +97,7 @@ var port = args.port;
 
 const app = express();
 const expressWs = require("express-ws")(app);
+const evseConn = openevse.connect(args.endpoint);
 
 //
 // Create HTTP server by ourselves.
@@ -52,11 +112,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get("/config", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
-  res.json(driver.config());
+  res.json(config);
 });
 app.get("/status", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
-  res.json(driver.status());
+  res.json(status);
 });
 app.get("/update", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
@@ -70,9 +130,14 @@ app.get("/r", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
 
   var rapi = req.query.rapi;
-  var resp = { "cmd": rapi, "ret": driver.rapi(rapi)};
 
-  res.json(resp);
+  evseConn.rawRequest(rapi, function (data) {
+    var resp = { "cmd": rapi, "ret": data};
+    res.json(resp);
+  }).error(function () {
+    var resp = { "cmd": rapi, "ret": "$NK"};
+    res.json(resp);
+  });
 });
 
 app.post("/savenetwork", function (req, res) {
