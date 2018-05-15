@@ -1,0 +1,5 @@
+GET http://localhost:3000/r?json=1&rapi=$GT HTTP/1.1
+
+###
+
+GET http://localhost:3000/r?json=1&rapi=$GE HTTP/1.1
