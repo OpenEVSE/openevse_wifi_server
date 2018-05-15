@@ -106,6 +106,19 @@ const evseConn = openevse.connect(args.endpoint);
 // Setup the static content
 app.use(express.static(path.join(__dirname, "../src/data"), { index: "home.htm" }));
 
+// Setup the websocket
+app.ws("/ws", function(ws, req) {
+  ws.on("message", function(msg) {
+    //ws.send(msg);
+  });
+});
+var ws = expressWs.getWss("/ws");
+ws.sendAll = function (data) {
+  ws.clients.forEach(client => {
+    client.send(JSON.stringify(data));
+  });
+};
+
 // Setup the API endpoints
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -190,12 +203,6 @@ app.post("/apoff", function (req, res) {
 app.post("/divertmode", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
   res.status(500).send("Not implemented");
-});
-
-app.ws("/ws", function(ws, req) {
-  ws.on("message", function(msg) {
-    //ws.send(msg);
-  });
 });
 
 app.listen(port, () => console.log("OpenEVSE WiFi Simulator listening on port " + port + "!"));
