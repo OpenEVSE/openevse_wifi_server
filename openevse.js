@@ -8,6 +8,8 @@
 "use strict";
 
 const simulator = require("./simulator_driver");
+const SerialPort = require("serialport");
+const Readline = SerialPort.parsers.Readline;
 
 function OpenEVSEError(type, message = "") {
   this.type = type;
@@ -65,6 +67,43 @@ function OpenEVSEDriverSimulator()
       callback(simulator.rapi(command));
       request._always();
     }, 1);
+
+    return request;
+  };
+}
+
+function OpenEVSEDriverSerial(endpoint)
+{
+  const self = this;
+  const serial = new SerialPort(endpoint, {
+    baudRate: 115200
+  });
+
+  const parser = new Readline({ delimiter: "\r" });
+  serial.pipe(parser);
+
+  var requests = [];
+  parser.on("data", function (data)
+  {
+    if(data.startsWith("$OK") || data.startsWith("$NK"))
+    {
+      if(requests.length > 0)
+      {
+        var request = requests.pop();
+        request.callback(data);
+        request.request._always();
+      }
+    }
+  });
+
+  self.rapi = function(command, callback = function() {})
+  {
+    var request = new OpenEVSERequest();
+    serial.write(command+"\r");
+    requests.push({
+      callback: callback,
+      request: request
+    });
 
     return request;
   };
@@ -727,9 +766,14 @@ function OpenEVSE(driver)
 
 exports.connect = function(endpoint)
 {
+  var driver;
   if("simulator" === endpoint) {
-    return new OpenEVSE(new OpenEVSEDriverSimulator());
+    driver = new OpenEVSEDriverSimulator();
+  } else if(endpoint.startsWith("http:")) {
+    driver = new OpenEVSEDriverAjax(endpoint);
+  } else {
+    driver = new OpenEVSEDriverSerial(endpoint);
   }
 
-  return false;
+  return new OpenEVSE(driver);
 };
