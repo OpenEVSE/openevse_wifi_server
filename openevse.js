@@ -36,6 +36,7 @@ function OpenEVSERequest()
   };
 }
 
+// This almost certainly doesn't work, just a cut and paste from the browser version...
 function OpenEVSEDriverAjax(endpoint)
 {
   var self = this;
