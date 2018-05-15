@@ -107,8 +107,8 @@ const evseConn = openevse.connect(args.endpoint);
 app.use(express.static(path.join(__dirname, "../src/data"), { index: "home.htm" }));
 
 // Setup the websocket
-app.ws("/ws", function(ws, req) {
-  ws.on("message", function(msg) {
+app.ws("/ws", function(ws) {
+  ws.on("message", function() {
     //ws.send(msg);
   });
 });

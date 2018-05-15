@@ -106,7 +106,7 @@ exports.rapi = function(rapi) {
 
   status.comm_sent++;
 
-  var regex = /\$([^\^]*)(\^..)?/;
+  var regex = /\$([^^]*)(\^..)?/;
   var match = rapi.match(regex);
   var request = match[1].split(" ");
   var cmd = request[0];
