@@ -129,6 +129,8 @@ app.get("/config", function (req, res) {
 });
 app.get("/status", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
+  status.comm_sent = evseConn.comm_sent;
+  status.comm_success = evseConn.comm_success;
   res.json(status);
 });
 app.get("/update", function (req, res) {
@@ -206,3 +208,43 @@ app.post("/divertmode", function (req, res) {
 });
 
 app.listen(port, () => console.log("OpenEVSE WiFi Simulator listening on port " + port + "!"));
+
+// List of items to update on calling update(). The list will be processed one item at
+// a time.
+var updateList = [
+  function () { return evseConn.current_capacity(function (capacity) {
+    status.pilot = capacity;
+  }); },
+  function () { return evseConn.status(function (state, elapsed) {
+    status.state = state;
+    status.elapsed = elapsed;
+  }); },
+  function () { return evseConn.charging_current_voltage(function (voltage, current) {
+    status.voltage = voltage;
+    status.amp = current;
+  }); },
+  function () { return evseConn.temperatures(function (temp1, temp2, temp3) {
+    status.temp1 = temp1;
+    status.temp2 = temp2;
+    status.temp3 = temp3;
+  }); },
+  function () { return evseConn.energy(function (wattSeconds, whacc) {
+    status.wattsec = wattSeconds;
+    status.watthour = whacc;
+  }); },
+  function () { return evseConn.fault_counters(function (gfci_count, nognd_count, stuck_count) {
+    status.gfcicount = gfci_count;
+    status.nogndcount = nognd_count;
+    status.stuckcount = stuck_count;
+  }); },
+];
+
+var updateCount = 0;
+setInterval(function () {
+  var updateFn = updateList[updateCount];
+  updateFn();
+  updateCount++;
+  if(updateCount >= updateList.length) {
+    updateCount = 0;
+  }
+}, 2000);

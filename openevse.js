@@ -147,17 +147,21 @@ function OpenEVSE(driver)
 
   self.regex = /\$([^^]*)(\^..)?/;
 
+  self.comm_sent = 0;
+  self.comm_success = 0;
+
   self._request = function(args, callback = function() {})
   {
     var command = "$" + (Array.isArray(args) ? args.join("+") : args);
 
-    var request = new OpenEVSERequest();
-    self.rawRequest(command, function (data) {
-      var match = data.ret.match(self.regex);
+    var request = self.rawRequest(command, function (data) 
+    {
+      var match = data.match(self.regex);
       if(null !== match)
       {
         var response = match[1].split(" ");
         if("OK" === response[0]) {
+          self.comm_success++;
           callback(response.slice(1));
           request._done(response.slice(1));
         } else {
@@ -166,18 +170,14 @@ function OpenEVSE(driver)
       } else {
         request._error(new OpenEVSEError("UnexpectedResponse"));
       }
-    }, "json").always(function () {
-      request._always();
-    }).fail(function () {
-      request._error(new OpenEVSEError("RequestFailed"));
     });
 
     return request;
   };
 
-
   self.rawRequest = function (command, callback = function() {})
   {
+    self.comm_sent++;
     return self._driver.rapi(command, callback);
   };
 
@@ -437,7 +437,7 @@ function OpenEVSE(driver)
     var request = self._request("GA", function(data) {
       if(data.length >= 2) {
         var scaleFactor = parseInt(data[0]);
-        var offset = parseInt(data[0]);
+        var offset = parseInt(data[1]);
 
         if(!isNaN(scaleFactor) && !isNaN(offset)) {
           callback(scaleFactor, offset);
@@ -558,8 +558,10 @@ function OpenEVSE(driver)
     var request = self._request("GS", function(data) {
       if(data.length >= 1) {
         var state = parseInt(data[0]);
-        if(!isNaN(state)) {
-          callback(state);
+        var elapsed = parseInt(data[1]);
+
+        if(!isNaN(state) && !isNaN(elapsed)) {
+          callback(state, elapsed);
         } else {
           request._error(new OpenEVSEError("ParseError", "Could not parse \""+data.join(" ")+"\" arguments"));
         }
@@ -750,10 +752,96 @@ function OpenEVSE(driver)
     var request = self._request("GO", function(data) {
       if(data.length >= 2) {
         var ambientthresh = parseInt(data[0]);
-        var irthresh = parseInt(data[0]);
+        var irthresh = parseInt(data[1]);
 
         if(!isNaN(ambientthresh) && !isNaN(irthresh)) {
           callback(ambientthresh, irthresh);
+        } else {
+          request._error(new OpenEVSEError("ParseError", "Could not parse \""+data.join(" ")+"\" arguments"));
+        }
+      } else {
+        request._error(new OpenEVSEError("ParseError", "Only received "+data.length+" arguments"));
+      }
+    });
+    return request;
+  };
+
+  /**
+   *
+   */
+  self.charging_current_voltage = function(callback) {
+    var request = self._request("GG", function(data) {
+      if(data.length >= 2) {
+        var voltage = parseInt(data[0]);
+        var current = parseInt(data[1]);
+
+        if(!isNaN(voltage) && !isNaN(current)) {
+          callback(voltage, current);
+        } else {
+          request._error(new OpenEVSEError("ParseError", "Could not parse \""+data.join(" ")+"\" arguments"));
+        }
+      } else {
+        request._error(new OpenEVSEError("ParseError", "Only received "+data.length+" arguments"));
+      }
+    });
+    return request;
+  };
+
+  /**
+   *
+   */
+  self.temperatures = function(callback) {
+    var request = self._request("GP", function(data) {
+      if(data.length >= 2) {
+        var temp1 = parseInt(data[0]);
+        var temp2 = parseInt(data[1]);
+        var temp3 = parseInt(data[2]);
+
+        if(!isNaN(temp1) && !isNaN(temp2) && !isNaN(temp3)) {
+          callback(temp1, temp2, temp3);
+        } else {
+          request._error(new OpenEVSEError("ParseError", "Could not parse \""+data.join(" ")+"\" arguments"));
+        }
+      } else {
+        request._error(new OpenEVSEError("ParseError", "Only received "+data.length+" arguments"));
+      }
+    });
+    return request;
+  };
+
+  /**
+   *
+   */
+  self.energy = function(callback) {
+    var request = self._request("GP", function(data) {
+      if(data.length >= 2) {
+        var wattSeconds = parseInt(data[0]);
+        var whacc = parseInt(data[1]);
+
+        if(!isNaN(wattSeconds) && !isNaN(whacc)) {
+          callback(wattSeconds, whacc);
+        } else {
+          request._error(new OpenEVSEError("ParseError", "Could not parse \""+data.join(" ")+"\" arguments"));
+        }
+      } else {
+        request._error(new OpenEVSEError("ParseError", "Only received "+data.length+" arguments"));
+      }
+    });
+    return request;
+  };
+
+  /**
+   *
+   */
+  self.fault_counters = function(callback) {
+    var request = self._request("GF", function(data) {
+      if(data.length >= 2) {
+        var gfci_count = parseInt(data[0], 16);
+        var nognd_count = parseInt(data[1], 16);
+        var stuck_count = parseInt(data[2], 16);
+
+        if(!isNaN(gfci_count) && !isNaN(nognd_count) && !isNaN(stuck_count)) {
+          callback(gfci_count, nognd_count, stuck_count);
         } else {
           request._error(new OpenEVSEError("ParseError", "Could not parse \""+data.join(" ")+"\" arguments"));
         }
