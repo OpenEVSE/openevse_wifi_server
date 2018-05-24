@@ -1,4 +1,6 @@
 /* jslint node: true, esversion: 6 */
+/* jshint bitwise: false*/
+
 "use strict";
 
 var autoService = 1;
