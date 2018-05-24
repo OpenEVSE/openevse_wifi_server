@@ -48,18 +48,20 @@ exports.rapi = function(rapi)
   }
 
   var dummyData = {
-    "GT": "$OK 18 0 25 23 54 27^1B",
-    "GE": "$OK 20 0229^2B",
-    "GC": "$OK 10 80^29",
-    "G3": "$OK 0^30",
-    "GH": "$OK 0^30",
-    "GO": "$OK 650 650^20",
-    "GD": "$OK 0 0 0 0^20",
-    "GU": "$OK 0 54^11",
-    "GF": "$OK 0 c 0^63",
-    "GS": "$OK 3 108^2A",
-    "GG": "$OK 0 -1^0C",
-    "GP": "$OK 247 0 230^30"
+    "GT": checksum("$OK 18 0 25 23 54 27"),
+    "GE": checksum("$OK 20 0229"),
+    "GC": checksum("$OK 10 80"),
+    "G3": checksum("$OK 0"),
+    "GH": checksum("$OK 0"),
+    "GO": checksum("$OK 650 650"),
+    "GD": checksum("$OK 0 0 0 0"),
+    "GU": checksum("$OK 0 54"),
+    "GF": checksum("$OK 0 c 0"),
+    "GS": checksum("$OK 3 108"),
+    "GG": checksum("$OK 0 -1"),
+    "GP": checksum("$OK 247 0 230"),
+    "GA": checksum("$OK 220 0"),
+    "GV": checksum("$OK DEMO 3.0.1")
   };
 
   var regex = /\$([^^]*)(\^..)?/;

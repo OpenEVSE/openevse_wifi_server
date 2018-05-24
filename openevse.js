@@ -199,7 +199,7 @@ function OpenEVSE(driver)
    * - auto_start
    * - serial_debug
    */
-  self._flags = function (callback)
+  self.flags = function (callback)
   {
     var request = self._request("GE", function(data) {
       var flags = parseInt(data[1], 16);
@@ -502,7 +502,7 @@ function OpenEVSE(driver)
         });
     }
 
-    var request = self._flags(function(flags) {
+    var request = self.flags(function(flags) {
       callback(flags.auto_service_level ? 0 : flags.service_level, flags.service_level);
     });
     return request;
@@ -590,7 +590,7 @@ function OpenEVSE(driver)
         });
     }
 
-    var request = self._flags(function(flags) {
+    var request = self.flags(function(flags) {
       callback(flags.diode_check);
     });
     return request;
@@ -613,7 +613,7 @@ function OpenEVSE(driver)
         });
     }
 
-    var request = self._flags(function(flags) {
+    var request = self.flags(function(flags) {
       callback(flags.gfi_self_test);
     });
     return request;
@@ -636,7 +636,7 @@ function OpenEVSE(driver)
         });
     }
 
-    var request = self._flags(function(flags) {
+    var request = self.flags(function(flags) {
       callback(flags.ground_check);
     });
     return request;
@@ -659,7 +659,7 @@ function OpenEVSE(driver)
         });
     }
 
-    var request = self._flags(function(flags) {
+    var request = self.flags(function(flags) {
       callback(flags.stuck_relay_check);
     });
     return request;
@@ -682,7 +682,7 @@ function OpenEVSE(driver)
         });
     }
 
-    var request = self._flags(function(flags) {
+    var request = self.flags(function(flags) {
       callback(flags.vent_required);
     });
     return request;
@@ -704,7 +704,7 @@ function OpenEVSE(driver)
         });
     }
 
-    var request = self._flags(function(flags) {
+    var request = self.flags(function(flags) {
       callback(flags.temp_check);
     });
     return request;
@@ -730,7 +730,7 @@ function OpenEVSE(driver)
   //         self.temp_check(callback);
   //       });
   //   }
-  //   var request = self._flags(function(flags) {
+  //   var request = self.flags(function(flags) {
   //     callback(flags.temp_check);
   //   });
   //   return request;
@@ -845,6 +845,23 @@ function OpenEVSE(driver)
         } else {
           request._error(new OpenEVSEError("ParseError", "Could not parse \""+data.join(" ")+"\" arguments"));
         }
+      } else {
+        request._error(new OpenEVSEError("ParseError", "Only received "+data.length+" arguments"));
+      }
+    });
+    return request;
+  };
+
+  /**
+   *
+   */
+  self.version = function(callback) {
+    var request = self._request("GV", function(data) {
+      if(data.length >= 2) {
+        var version = data[0];
+        var protocol = data[1];
+
+        callback(version, protocol);
       } else {
         request._error(new OpenEVSEError("ParseError", "Only received "+data.length+" arguments"));
       }

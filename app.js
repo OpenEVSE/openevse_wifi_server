@@ -12,16 +12,16 @@ const openevse = require("./openevse");
 var config = {
   "firmware": "-",
   "protocol": "-",
-  "espflash": 4194304,
-  "version": "DEMO",
+  "espflash": 0,
+  "version": "0.0.1",
   "diodet": 0,
   "gfcit": 0,
   "groundt": 0,
   "relayt": 0,
   "ventt": 0,
   "tempt": 0,
-  "service": 2,
-  "scale": 220,
+  "service": 0,
+  "scale": 0,
   "offset": 0,
   "ssid": "demo",
   "pass": "___DUMMY_PASSWORD___",
@@ -53,22 +53,25 @@ var status = {
   "mqtt_connected": 1,
   "ohm_hour": "NotConnected",
   "free_heap": 20816,
-  "comm_sent": 1077,
-  "comm_success": 1075,
-  "amp": 27500,
-  "pilot": 32,
-  "temp1": 247,
+  "comm_sent": 0,
+  "comm_success": 0,
+  "amp": 0,
+  "pilot": 0,
+  "temp1": 0,
   "temp2": 0,
-  "temp3": 230,
-  "state": 3,
-  "elapsed": 10790,
-  "wattsec": 71280000,
-  "watthour": 72970,
+  "temp3": 0,
+  "state": 0,
+  "elapsed": 0,
+  "wattsec": 0,
+  "watthour": 0,
   "gfcicount": 0,
   "nogndcount": 0,
   "stuckcount": 0,
   "divertmode": 1
 };
+
+// Time between sending a command to the OpenEVSE
+var updateTime = 500;
 
 let args = minimist(process.argv.slice(2), {
   alias: {
@@ -209,6 +212,28 @@ app.post("/divertmode", function (req, res) {
 
 app.listen(port, () => console.log("OpenEVSE WiFi Simulator listening on port " + port + "!"));
 
+
+// List of items to update on calling update on startup
+var initList = [
+  function () { return evseConn.version(function (version, protocol) {
+    config.firmware = version;
+    config.protocol = protocol;
+  }); },
+  function () { return evseConn.ammeter_settings(function (scaleFactor, offset) {
+    config.scale = scaleFactor;
+    config.offset = offset;
+  }); },
+  function () { return evseConn.flags(function (flags) {
+    config.service = flags.service;
+    config.diodet = flags.diode_check ? 0 : 1;
+    config.ventt = flags.vent_required ? 0 : 1;
+    config.groundt = flags.ground_check ? 0 : 1;
+    config.relayt = flags.stuck_relay_check ? 0 : 1;
+    config.gfcit = flags.gfci_test ? 0 : 1;
+    config.tempt = flags.temp_ck ? 0 : 1;
+  }); },
+];
+
 // List of items to update on calling update(). The list will be processed one item at
 // a time.
 var updateList = [
@@ -239,12 +264,30 @@ var updateList = [
   }); },
 ];
 
-var updateCount = 0;
-setInterval(function () {
-  var updateFn = updateList[updateCount];
-  updateFn();
-  updateCount++;
-  if(updateCount >= updateList.length) {
-    updateCount = 0;
+function init(list, always, delay = 0, count = 0)
+{
+  if(count >= list.length) {
+    always();
+    return;
   }
-}, 2000);
+
+  var updateFn = list[count];
+  updateFn().always(function () {
+    setTimeout(function () {
+      init(list, always, delay, count + 1);
+    }, delay);
+  });
+}
+
+init(initList, function () {
+  init(updateList, function () {
+    setTimeout(function () {
+      update();
+    }, updateTime);
+  });
+});
+
+function update()
+{
+  init(updateList, update, updateTime);
+}
