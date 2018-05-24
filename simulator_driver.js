@@ -1,72 +1,19 @@
 /* jslint node: true, esversion: 6 */
 "use strict";
 
-var config = {
-  "firmware": "-",
-  "protocol": "-",
-  "espflash": 4194304,
-  "version": "DEMO",
-  "diodet": 0,
-  "gfcit": 0,
-  "groundt": 0,
-  "relayt": 0,
-  "ventt": 0,
-  "tempt": 0,
-  "service": 2,
-  "scale": 220,
-  "offset": 0,
-  "ssid": "demo",
-  "pass": "___DUMMY_PASSWORD___",
-  "emoncms_enabled": false,
-  "emoncms_server": "emoncms.org",
-  "emoncms_node": "openevse",
-  "emoncms_apikey": "",
-  "emoncms_fingerprint": "",
-  "mqtt_enabled": true,
-  "mqtt_server": "emonpi.local",
-  "mqtt_topic": "openevse",
-  "mqtt_user": "emonpi",
-  "mqtt_pass": "___DUMMY_PASSWORD___",
-  "mqtt_solar": "emon/emonpi/power1",
-  "mqtt_grid_ie": "",
-  "www_username": "",
-  "www_password": "",
-  "ohm_enabled": false
-};
-
-var status = {
-  "mode": "STA",
-  "wifi_client_connected": 1,
-  "srssi": -50,
-  "ipaddress": "172.16.0.191",
-  "emoncms_connected": 0,
-  "packets_sent": 0,
-  "packets_success": 0,
-  "mqtt_connected": 1,
-  "ohm_hour": "NotConnected",
-  "free_heap": 20816,
-  "comm_sent": 1077,
-  "comm_success": 1075,
-  "amp": 27500,
-  "pilot": 32,
-  "temp1": 247,
-  "temp2": 0,
-  "temp3": 230,
-  "state": 3,
-  "elapsed": 10790,
-  "wattsec": 71280000,
-  "watthour": 72970,
-  "gfcicount": 0,
-  "nogndcount": 0,
-  "stuckcount": 0,
-  "divertmode": 1
-};
-
 var autoService = 1;
 var autoStart   = 0;
 var serialDebug = 0;
 var lcdType     = 0;
 var commandEcho = 0;
+var pilot       = 32;
+var service     = 0;
+var diodet      = 0;
+var ventt       = 0;
+var groundt     = 0;
+var relayt      = 0;
+var gfcit       = 0;
+var tempt       = 0;
 
 var ffSupported = true;
 
@@ -92,7 +39,11 @@ function checksum(msg)
   return msg + "^" + checkString;
 }
 
-exports.rapi = function(rapi) {
+exports.rapi = function(rapi)
+{
+  if(commandEcho) {
+    console.log(rapi);
+  }
 
   var dummyData = {
     "GT": "$OK 18 0 25 23 54 27^1B",
@@ -101,10 +52,13 @@ exports.rapi = function(rapi) {
     "G3": "$OK 0^30",
     "GH": "$OK 0^30",
     "GO": "$OK 650 650^20",
-    "GD": "$OK 0 0 0 0^20"
+    "GD": "$OK 0 0 0 0^20",
+    "GU": "$OK 0 54^11",
+    "GF": "$OK 0 c 0^63",
+    "GS": "$OK 3 108^2A",
+    "GG": "$OK 0 -1^0C",
+    "GP": "$OK 247 0 230^30"
   };
-
-  status.comm_sent++;
 
   var regex = /\$([^^]*)(\^..)?/;
   var match = rapi.match(regex);
@@ -131,21 +85,21 @@ exports.rapi = function(rapi) {
 
   case "GE": {
     var flags = 0;
-    flags |= (2 === config.service  ? 0x0001 : 0);
-    flags |= (config.diodet         ? 0x0002 : 0);
-    flags |= (config.ventt          ? 0x0004 : 0);
-    flags |= (config.groundt        ? 0x0008 : 0);
-    flags |= (config.relayt         ? 0x0010 : 0);
-    flags |= (autoService           ? 0x0020 : 0);
-    flags |= (autoStart             ? 0x0040 : 0);
-    flags |= (serialDebug           ? 0x0080 : 0);
-    flags |= (lcdType               ? 0x0100 : 0);
-    flags |= (config.gfcit          ? 0x0200 : 0);
-    flags |= (config.tempt          ? 0x0400 : 0);
+    flags |= (2 === service  ? 0x0001 : 0);
+    flags |= (diodet         ? 0x0002 : 0);
+    flags |= (ventt          ? 0x0004 : 0);
+    flags |= (groundt        ? 0x0008 : 0);
+    flags |= (relayt         ? 0x0010 : 0);
+    flags |= (autoService    ? 0x0020 : 0);
+    flags |= (autoStart      ? 0x0040 : 0);
+    flags |= (serialDebug    ? 0x0080 : 0);
+    flags |= (lcdType        ? 0x0100 : 0);
+    flags |= (gfcit          ? 0x0200 : 0);
+    flags |= (tempt          ? 0x0400 : 0);
 
     var flagsStr = toHex(flags, 4);
 
-    resp = checksum("$OK " + status.pilot.toString() + " " + flagsStr);
+    resp = checksum("$OK " + pilot.toString() + " " + flagsStr);
     success = true;
     break;
   }
@@ -156,7 +110,7 @@ exports.rapi = function(rapi) {
       switch(request[1])
       {
       case "D":
-        config.diodet = parseInt(request[2]) ? 0 : 1;
+        diodet = parseInt(request[2]) ? 0 : 1;
         success = true;
         break;
 
@@ -166,27 +120,27 @@ exports.rapi = function(rapi) {
         break;
 
       case "F":
-        config.gfcit = parseInt(request[2]) ? 0 : 1;
+        gfcit = parseInt(request[2]) ? 0 : 1;
         success = true;
         break;
 
       case "G":
-        config.groundt = parseInt(request[2]) ? 0 : 1;
+        groundt = parseInt(request[2]) ? 0 : 1;
         success = true;
         break;
 
       case "R":
-        config.relayt = parseInt(request[2]) ? 0 : 1;
+        relayt = parseInt(request[2]) ? 0 : 1;
         success = true;
         break;
 
       case "T":
-        config.tempt = parseInt(request[2]) ? 0 : 1;
+        tempt = parseInt(request[2]) ? 0 : 1;
         success = true;
         break;
 
       case "V":
-        config.ventt = parseInt(request[2]) ? 0 : 1;
+        ventt = parseInt(request[2]) ? 0 : 1;
         success = true;
         break;
       }
@@ -199,7 +153,7 @@ exports.rapi = function(rapi) {
 
   case "SD": {
     if(!ffSupported && request.length >= 2) {
-      config.diodet = parseInt(request[1]) ? 0 : 1;
+      diodet = parseInt(request[1]) ? 0 : 1;
       success = true;
       resp = checksum("$OK");
     }
@@ -215,7 +169,7 @@ exports.rapi = function(rapi) {
 
   case "SF": {
     if(!ffSupported && request.length >= 2) {
-      config.gfcit = parseInt(request[1]) ? 0 : 1;
+      gfcit = parseInt(request[1]) ? 0 : 1;
       success = true;
       resp = checksum("$OK");
     }
@@ -223,7 +177,7 @@ exports.rapi = function(rapi) {
 
   case "SG": {
     if(!ffSupported && request.length >= 2) {
-      config.groundt = parseInt(request[1]) ? 0 : 1;
+      groundt = parseInt(request[1]) ? 0 : 1;
       success = true;
       resp = checksum("$OK");
     }
@@ -231,7 +185,7 @@ exports.rapi = function(rapi) {
 
   case "SR": {
     if(!ffSupported && request.length >= 2) {
-      config.relayt = parseInt(request[1]) ? 0 : 1;
+      relayt = parseInt(request[1]) ? 0 : 1;
       success = true;
       resp = checksum("$OK");
     }
@@ -239,24 +193,27 @@ exports.rapi = function(rapi) {
 
   case "SV": {
     if(!ffSupported && request.length >= 2) {
-      config.ventt = parseInt(request[1]) ? 0 : 1;
+      ventt = parseInt(request[1]) ? 0 : 1;
       success = true;
       resp = checksum("$OK");
     }
   } break;
 
   default:
-    if (rapi.hasOwnProperty(cmd)) {
+    if (dummyData.hasOwnProperty(cmd)) {
       resp = dummyData[cmd];
       success = true;
       break;
     }
   }
 
-  if(success) {
-    status.comm_success++;
-  } else {
+  if(!success) {
+    console.warn("Could not handle "+rapi);
     resp = "$NK";
+  }
+
+  if(commandEcho) {
+    console.log(resp);
   }
 
   return resp;
