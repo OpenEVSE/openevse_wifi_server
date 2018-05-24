@@ -154,7 +154,7 @@ function OpenEVSE(driver)
   {
     var command = "$" + (Array.isArray(args) ? args.join("+") : args);
 
-    var request = self.rawRequest(command, function (data) 
+    var request = self.rawRequest(command, function (data)
     {
       var match = data.match(self.regex);
       if(null !== match)
@@ -813,7 +813,7 @@ function OpenEVSE(driver)
    *
    */
   self.energy = function(callback) {
-    var request = self._request("GP", function(data) {
+    var request = self._request("GU", function(data) {
       if(data.length >= 2) {
         var wattSeconds = parseInt(data[0]);
         var whacc = parseInt(data[1]);
