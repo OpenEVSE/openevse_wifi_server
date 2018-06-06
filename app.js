@@ -7,7 +7,7 @@ const bodyParser = require("body-parser");
 const minimist = require("minimist");
 
 const openevse = require("./openevse");
-
+const EmonCMS = require("./emoncms");
 
 var config = {
   "firmware": "-",
@@ -26,11 +26,11 @@ var config = {
   "ssid": "demo",
   "pass": "___DUMMY_PASSWORD___",
   "emoncms_enabled": false,
-  "emoncms_server": "emoncms.org",
+  "emoncms_server": "https://data.openevse.com/emoncms",
   "emoncms_node": "openevse",
-  "emoncms_apikey": "",
+  "emoncms_apikey": "___DUMMY_PASSWORD___",
   "emoncms_fingerprint": "",
-  "mqtt_enabled": true,
+  "mqtt_enabled": false,
   "mqtt_server": "emonpi.local",
   "mqtt_topic": "openevse",
   "mqtt_user": "emonpi",
@@ -72,6 +72,7 @@ var status = {
 
 // Time between sending a command to the OpenEVSE
 var updateTime = 500;
+var uploadTime = 30 * 1000;
 
 let args = minimist(process.argv.slice(2), {
   alias: {
@@ -264,7 +265,7 @@ var updateList = [
   }); },
 ];
 
-function init(list, always, delay = 0, count = 0)
+function runList(list, always, delay = 0, count = 0)
 {
   if(count >= list.length) {
     always();
@@ -274,20 +275,60 @@ function init(list, always, delay = 0, count = 0)
   var updateFn = list[count];
   updateFn().always(function () {
     setTimeout(function () {
-      init(list, always, delay, count + 1);
+      runList(list, always, delay, count + 1);
     }, delay);
   });
 }
 
-init(initList, function () {
-  init(updateList, function () {
-    setTimeout(function () {
-      update();
-    }, updateTime);
-  });
-});
-
-function update()
-{
-  init(updateList, update, updateTime);
+function update() {
+  runList(updateList, upload, updateTime);
 }
+
+function upload()
+{
+  var data = {
+    amp: status.amp,
+    wh: status.wattsec,
+    temp1: status.temp1,
+    temp2: status.temp2,
+    temp3: status.temp3,
+    pilot: status.pilot,
+    state: status.state,
+    freeram: 0,
+    divertmode: status.divertmode
+  };
+  if (status.volt > 0) {
+    data.volt = status.volt;
+  }
+
+  if(config.emoncms_enabled) {
+    var emoncms = new EmonCMS(config.emoncms_apikey, config.emoncms_server);
+    emoncms.nodegroup = config.emoncms_node;
+    emoncms.datatype = "fulljson";
+    status.packets_sent++;
+    emoncms.post({
+      payload: data
+    }).then(function () {
+      status.emoncms_connected = true;
+      status.packets_success++;
+    }).catch(function(error) {
+      console.error("EmonCMS post Failed!", error);
+    });
+  }
+  if(config.mqtt_enabled) {
+  }
+  if(config.ohm_enabled) {
+  }
+}
+
+function start()
+{
+  runList(initList, function () {
+    runList(updateList, function () {
+      setTimeout(update, updateTime);
+      setInterval(upload, uploadTime);
+    });
+  });
+}
+
+start();
