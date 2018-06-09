@@ -16,7 +16,6 @@ module.exports = class EmonCMS
     else { this.http = require("http"); }
   }
 
-
   post(msg)
   {
     return new Promise(function(resolve, reject)

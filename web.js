@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const app = express();
 const expressWs = require("express-ws")(app);
 
+const DUMMY_PASSWORD = "___DUMMY_PASSWORD___";
 var data = false;
 
 //
@@ -48,27 +49,26 @@ app.get("/config", function (req, res) {
     scale: data.openevse.scale,
     offset: data.openevse.offset,
     ssid: data.config.wifi.ssid,
-    pass: data.config.wifi.pass ? "___DUMMY_PASSWORD___" : "",
+    pass: data.config.wifi.pass ? DUMMY_PASSWORD : "",
     emoncms_enabled: data.config.emoncms.enabled,
     emoncms_server: data.config.emoncms.server,
     emoncms_node: data.config.emoncms.node,
-    emoncms_apikey: data.config.emoncms.apikey ? "___DUMMY_PASSWORD___" : "",
+    emoncms_apikey: data.config.emoncms.apikey ? DUMMY_PASSWORD : "",
     emoncms_fingerprint: data.config.emoncms.fingerprint,
     mqtt_enabled: data.config.mqtt.enabled,
     mqtt_server: data.config.mqtt.server,
     mqtt_topic: data.config.mqtt.topic,
     mqtt_user: data.config.mqtt.user,
-    mqtt_pass: data.config.mqtt.pass ? "___DUMMY_PASSWORD___" : "",
+    mqtt_pass: data.config.mqtt.pass ? DUMMY_PASSWORD : "",
     mqtt_solar: data.config.mqtt.solar,
     mqtt_grid_ie: data.config.mqtt.grid_ie,
     www_username: data.config.www.username,
-    www_password: data.config.www.password ? "___DUMMY_PASSWORD___" : "",
+    www_password: data.config.www.password ? DUMMY_PASSWORD : "",
     ohm_enabled: data.config.ohm.enabled
   });
 });
 app.get("/status", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
-  data.updateStatus();
   res.json(data.status);
 });
 app.get("/update", function (req, res) {
@@ -100,7 +100,19 @@ app.post("/savenetwork", function (req, res) {
 
 app.post("/saveemoncms", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
-  res.status(500).send("Not implemented");
+  var config = {
+    emoncms: {
+      enabled: req.body.enable,
+      server: req.body.server,
+      node: req.body.node,
+      fingerprint: req.body.fingerprint
+    }
+  };
+  if(DUMMY_PASSWORD !== req.body.apikey) {
+    config.emoncms.apikey = req.body.apikey;
+  }
+  data.config = config;
+  res.send("Saved: " + req.body.server + " " + req.body.node + " " + req.body.apikey + " " + req.body.fingerprint);
 });
 
 app.post("/savemqtt", function (req, res) {

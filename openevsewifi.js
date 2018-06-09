@@ -26,14 +26,14 @@ module.exports = class OpenEVSEWiFi
       scale: 0,
       offset: 0,
     };
-    this.config = {
+    this._config = {
       wifi: {
         ssid: "demo",
         pass: ""
       },
       emoncms: {
         enabled: false,
-        server: "https://this.openevse.com/emoncms",
+        server: "https://data.openevse.com/emoncms",
         node: "openevse",
         apikey: "",
         fingerprint: ""
@@ -55,7 +55,7 @@ module.exports = class OpenEVSEWiFi
         enabled: false
       },
     };
-    this.status = {
+    this._status = {
       mode: "STA",
       wifi_client_connected: 1,
       srssi: -50,
@@ -112,29 +112,29 @@ module.exports = class OpenEVSEWiFi
     // a time.
     this.updateList = [
       function () { return this.evseConn.current_capacity(function (capacity) {
-        this.status.pilot = capacity;
+        this._status.pilot = capacity;
       }.bind(this)); }.bind(this),
       function () { return this.evseConn.status(function (state, elapsed) {
-        this.status.state = state;
-        this.status.elapsed = elapsed;
+        this._status.state = state;
+        this._status.elapsed = elapsed;
       }.bind(this)); }.bind(this),
       function () { return this.evseConn.charging_current_voltage(function (voltage, current) {
-        this.status.voltage = voltage;
-        this.status.amp = current;
+        this._status.voltage = voltage;
+        this._status.amp = current;
       }.bind(this)); }.bind(this),
       function () { return this.evseConn.temperatures(function (temp1, temp2, temp3) {
-        this.status.temp1 = temp1;
-        this.status.temp2 = temp2;
-        this.status.temp3 = temp3;
+        this._status.temp1 = temp1;
+        this._status.temp2 = temp2;
+        this._status.temp3 = temp3;
       }.bind(this)); }.bind(this),
       function () { return this.evseConn.energy(function (wattSeconds, whacc) {
-        this.status.wattsec = wattSeconds;
-        this.status.watthour = whacc;
+        this._status.wattsec = wattSeconds;
+        this._status.watthour = whacc;
       }.bind(this)); }.bind(this),
       function () { return this.evseConn.fault_counters(function (gfci_count, nognd_count, stuck_count) {
-        this.status.gfcicount = gfci_count;
-        this.status.nogndcount = nognd_count;
-        this.status.stuckcount = stuck_count;
+        this._status.gfcicount = gfci_count;
+        this._status.nogndcount = nognd_count;
+        this._status.stuckcount = stuck_count;
       }.bind(this)); }.bind(this),
     ];
   }
@@ -161,37 +161,37 @@ module.exports = class OpenEVSEWiFi
   upload()
   {
     var data = {
-      amp: this.status.amp,
-      wh: this.status.wattsec,
-      temp1: this.status.temp1,
-      temp2: this.status.temp2,
-      temp3: this.status.temp3,
-      pilot: this.status.pilot,
-      state: this.status.state,
+      amp: this._status.amp,
+      wh: this._status.wattsec,
+      temp1: this._status.temp1,
+      temp2: this._status.temp2,
+      temp3: this._status.temp3,
+      pilot: this._status.pilot,
+      state: this._status.state,
       freeram: 0,
-      divertmode: this.status.divertmode
+      divertmode: this._status.divertmode
     };
-    if (this.status.volt > 0) {
-      data.volt = this.status.volt;
+    if (this._status.volt > 0) {
+      data.volt = this._status.volt;
     }
 
-    if(this.config.emoncms.enabled) {
-      var emoncms = new EmonCMS(this.config.emoncms.apikey, this.config.emoncms.server);
-      emoncms.nodegroup = this.config.emoncms.node;
+    if(this._config.emoncms.enabled) {
+      var emoncms = new EmonCMS(this._config.emoncms.apikey, this._config.emoncms.server);
+      emoncms.nodegroup = this._config.emoncms.node;
       emoncms.datatype = "fulljson";
-      this.status.packets_sent++;
+      this._status.packets_sent++;
       emoncms.post({
         payload: data
       }).then(function () {
-        this.status.emoncms_connected = true;
-        this.status.packets_success++;
-      }).catch(function(error) {
+        this._status.emoncms_connected = 1;
+        this._status.packets_success++;
+      }.bind(this)).catch(function(error) {
         console.error("EmonCMS post Failed!", error);
       });
     }
-    if(this.config.mqtt.enabled) {
+    if(this._config.mqtt.enabled) {
     }
-    if(this.config.ohm.enabled) {
+    if(this._config.ohm.enabled) {
     }
   }
 
@@ -206,12 +206,48 @@ module.exports = class OpenEVSEWiFi
     }.bind(this));
   }
 
-  updateStatus() {
-    this.status.comm_sent = this.evseConn.comm_sent;
-    this.status.comm_success = this.evseConn.comm_success;
-  }
-
   rapi(cmd, callback) {
     return this.evseConn.rawRequest(cmd, callback);
+  }
+
+  get status() {
+    this._status.comm_sent = this.evseConn.comm_sent;
+    this._status.comm_success = this.evseConn.comm_success;
+    return this._status;
+  }
+
+  get config() {
+    return this._config;
+  }
+
+  set config(options)
+  {
+    if(options.emoncms)
+    {
+      var modified = false;
+      if(options.emoncms.enabled && this._config.emoncms.enabled !== options.emoncms.enabled) {
+        this._config.emoncms.enabled = options.emoncms.enabled;
+        modified = true;
+      }
+      if(options.emoncms.server && this._config.emoncms.server !== options.emoncms.server) {
+        this._config.emoncms.server = options.emoncms.server;
+        modified = true;
+      }
+      if(options.emoncms.node && this._config.emoncms.node !== options.emoncms.node) {
+        this._config.emoncms.node = options.emoncms.node;
+        modified = true;
+      }
+      if(options.emoncms.apikey && this._config.emoncms.apikey !== options.emoncms.apikey) {
+        this._config.emoncms.apikey = options.emoncms.apikey;
+        modified = true;
+      }
+      if(options.emoncms.fingerprint && this._config.emoncms.fingerprint !== options.emoncms.fingerprint) {
+        this._config.emoncms.fingerprint = options.emoncms.fingerprint;
+        modified = true;
+      }
+      if(modified) {
+        this._status.emoncms_connected = 0;
+      }
+    }
   }
 };
