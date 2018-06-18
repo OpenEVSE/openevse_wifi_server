@@ -36,22 +36,49 @@ function OpenEVSERequest()
   };
 }
 
-// This almost certainly doesn't work, just a cut and paste from the browser version...
-function OpenEVSEDriverAjax(endpoint)
+function OpenEVSEDriverHttp(endpoint)
 {
   var self = this;
   self._endpoint = endpoint;
+  if (endpoint.substring(0, 5) === "https") { self.http = require("https"); }
+  else { self.http = require("http"); }
 
   self.rapi = function(command, callback = function() {})
   {
     var request = new OpenEVSERequest();
-    $.get(self._endpoint + "?json=1&rapi="+encodeURI(command), function (data) {
-      callback(data.ret);
-    }, "json").always(function () {
-      request._always();
-    }).fail(function () {
-      request._error(new OpenEVSEError("RequestFailed"));
+    var url = self._endpoint + "?json=1&rapi="+encodeURI(command);
+    self.http.get(url, function (res) {
+      res.setEncoding("utf8");
+      var body = "";
+
+      res.on("data", function (chunk) {
+        body += chunk;
+      });
+
+      res.on("end", function() {
+        var data;
+        try {
+          data = JSON.parse(body);
+          callback(data.ret);
+          request._always();
+        }
+        catch (e) {
+          request._error(new OpenEVSEError("BadBody", body));
+          request._always();
+        }
+      }).on("error", function () {
+        request._error(new OpenEVSEError("RequestFailed"));
+        request._always();
+      }).setTimeout(6000, function () {
+        request._error(new OpenEVSEError("HTTPTimeout"));
+        request._always();
+      });
     });
+
+    //callback(data.ret);
+    //, "json").always(function () {
+    //  request._always();
+    //}).fail();
 
     return request;
   };
@@ -875,8 +902,8 @@ exports.connect = function(endpoint)
   var driver;
   if("simulator" === endpoint) {
     driver = new OpenEVSEDriverSimulator();
-  } else if(endpoint.startsWith("http:")) {
-    driver = new OpenEVSEDriverAjax(endpoint);
+  } else if(endpoint.startsWith("http:") || endpoint.startsWith("https:")) {
+    driver = new OpenEVSEDriverHttp(endpoint);
   } else {
     driver = new OpenEVSEDriverSerial(endpoint);
   }
