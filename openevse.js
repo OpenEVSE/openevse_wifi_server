@@ -75,11 +75,6 @@ function OpenEVSEDriverHttp(endpoint)
       });
     });
 
-    //callback(data.ret);
-    //, "json").always(function () {
-    //  request._always();
-    //}).fail();
-
     return request;
   };
 }
