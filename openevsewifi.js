@@ -4,6 +4,7 @@
 
 const openevse = require("./openevse");
 const EmonCMS = require("./emoncms");
+const mqtt = require("mqtt");
 
 module.exports = class OpenEVSEWiFi
 {
@@ -137,6 +138,8 @@ module.exports = class OpenEVSEWiFi
         this._status.stuckcount = stuck_count;
       }.bind(this)); }.bind(this),
     ];
+
+    this.mqttBroker = this.connectToMqttBroker();
   }
 
   runList(list, always, delay = 0, count = 0)
@@ -189,7 +192,12 @@ module.exports = class OpenEVSEWiFi
         console.error("EmonCMS post Failed!", error);
       });
     }
-    if(this._config.mqtt.enabled) {
+    if(this._config.mqtt.enabled && this._status.mqtt_connected)
+    {
+      for(var name in data) {
+        var topic = this._config.mqtt.topic + "/" + name;
+        this.mqttBroker.publish(topic, String(data[name]));
+      }
     }
     if(this._config.ohm.enabled) {
     }
@@ -210,9 +218,34 @@ module.exports = class OpenEVSEWiFi
     return this.evseConn.rawRequest(cmd, callback);
   }
 
+  connectToMqttBroker()
+  {
+    this.status.mqtt_connected = false;
+    if(this.config.mqtt.enabled)
+    {
+      var opts = { };
+
+      if(this.config.mqtt.user && this.config.mqtt.pass)
+      {
+        opts.username = this.config.mqtt.user;
+        opts.password = this.config.mqtt.pass;
+      }
+
+      var client = mqtt.connect("mqtt://"+this.config.mqtt.server, opts);
+      client.on("connect", function () {
+        this.status.mqtt_connected = true;
+      }.bind(this));
+      return client;
+    }
+
+    return false;
+  }
+
   get status() {
-    this._status.comm_sent = this.evseConn.comm_sent;
-    this._status.comm_success = this.evseConn.comm_success;
+    if(this.evseConn) {
+      this._status.comm_sent = this.evseConn.comm_sent;
+      this._status.comm_success = this.evseConn.comm_success;
+    }
     return this._status;
   }
 
@@ -222,9 +255,10 @@ module.exports = class OpenEVSEWiFi
 
   set config(options)
   {
+    var modified;
     if(options.emoncms)
     {
-      var modified = false;
+      modified = false;
       if(options.emoncms.enabled && this._config.emoncms.enabled !== options.emoncms.enabled) {
         this._config.emoncms.enabled = options.emoncms.enabled;
         modified = true;
@@ -247,6 +281,42 @@ module.exports = class OpenEVSEWiFi
       }
       if(modified) {
         this._status.emoncms_connected = 0;
+      }
+    }
+    if(options.mqtt)
+    {
+      modified = false;
+      if(options.mqtt.enabled && this._config.mqtt.enabled !== options.mqtt.enabled) {
+        this._config.mqtt.enabled = options.mqtt.enabled;
+        modified = true;
+      }
+      if(options.mqtt.server && this._config.mqtt.server !== options.mqtt.server) {
+        this._config.mqtt.server = options.mqtt.server;
+        modified = true;
+      }
+      if(options.mqtt.topic && this._config.mqtt.topic !== options.mqtt.topic) {
+        this._config.mqtt.topic = options.mqtt.topic;
+        modified = true;
+      }
+      if(options.mqtt.user && this._config.mqtt.user !== options.mqtt.user) {
+        this._config.mqtt.user = options.mqtt.user;
+        modified = true;
+      }
+      if(options.mqtt.pass && this._config.mqtt.pass !== options.mqtt.pass) {
+        this._config.mqtt.pass = options.mqtt.pass;
+        modified = true;
+      }
+      if(options.mqtt.solar && this._config.mqtt.solar !== options.mqtt.solar) {
+        this._config.mqtt.solar = options.mqtt.solar;
+        modified = true;
+      }
+      if(options.mqtt.grid_ie && this._config.mqtt.grid_ie !== options.mqtt.grid_ie) {
+        this._config.mqtt.grid_ie = options.mqtt.grid_ie;
+        modified = true;
+      }
+
+      if(modified) {
+        this.mqttBroker = this.connectToMqttBroker();
       }
     }
   }

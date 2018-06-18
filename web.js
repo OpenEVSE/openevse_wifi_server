@@ -117,7 +117,21 @@ app.post("/saveemoncms", function (req, res) {
 
 app.post("/savemqtt", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
-  res.status(500).send("Not implemented");
+  var config = {
+    mqtt: {
+      enabled: req.body.enable,
+      server: req.body.server,
+      topic: req.body.topic,
+      user: req.body.user,
+      solar: req.body.solar,
+      grid_ie: req.body.grid_ie
+    }
+  };
+  if(DUMMY_PASSWORD !== req.body.pass) {
+    config.mqtt.pass = req.body.pass;
+  }
+  data.config = config;
+  res.send("Saved: " + req.body.server + " " + req.body.topic + " " + req.body.user + " " + req.body.pass);
 });
 
 app.post("/saveadmin", function (req, res) {
