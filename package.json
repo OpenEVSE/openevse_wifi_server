@@ -16,7 +16,8 @@
     "minimist": "^1.2.0",
     "mqtt": "^2.18.0",
     "serialport": "^6.2.0",
-    "ws": "^4.0.0"
+    "ws": "^4.0.0",
+    "xmldoc": "^1.1.0"
   },
   "devDependencies": {
     "eslint": "^4.16.0",

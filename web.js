@@ -141,7 +141,16 @@ app.post("/saveadmin", function (req, res) {
 
 app.post("/saveohmkey", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
-  res.status(500).send("Not implemented");
+  var config = {
+    ohm: {
+      enabled: req.body.enable,
+    }
+  };
+  if(DUMMY_PASSWORD !== req.body.ohm) {
+    config.ohm.key = req.body.ohm;
+  }
+  data.config = config;
+  res.send("saved");
 });
 
 app.post("/reset", function (req, res) {

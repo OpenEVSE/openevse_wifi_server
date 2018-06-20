@@ -4,6 +4,7 @@
 
 const openevse = require("./openevse");
 const EmonCMS = require("./emoncms");
+const OhmHour = require("./ohmhour");
 const mqtt = require("mqtt");
 
 module.exports = class OpenEVSEWiFi
@@ -53,7 +54,8 @@ module.exports = class OpenEVSEWiFi
         password: ""
       },
       ohm: {
-        enabled: false
+        enabled: false,
+        key: ""
       },
     };
     this._status = {
@@ -66,6 +68,7 @@ module.exports = class OpenEVSEWiFi
       packets_success: 0,
       mqtt_connected: 1,
       ohm_hour: "NotConnected",
+      ohm_started_charge: false,
       free_heap: 20816,
       comm_sent: 0,
       comm_success: 0,
@@ -178,7 +181,22 @@ module.exports = class OpenEVSEWiFi
       data.volt = this._status.volt;
     }
 
-    if(this._config.emoncms.enabled) {
+    this.uploadEmonCms(data);
+    this.uploadMqtt(data);
+    this.checkOhmHour();
+  }
+
+  uploadMqtt(data) {
+    if (this._config.mqtt.enabled && this._status.mqtt_connected) {
+      for (var name in data) {
+        var topic = this._config.mqtt.topic + "/" + name;
+        this.mqttBroker.publish(topic, String(data[name]));
+      }
+    }
+  }
+
+  uploadEmonCms(data) {
+    if (this._config.emoncms.enabled) {
       var emoncms = new EmonCMS(this._config.emoncms.apikey, this._config.emoncms.server);
       emoncms.nodegroup = this._config.emoncms.node;
       emoncms.datatype = "fulljson";
@@ -188,18 +206,36 @@ module.exports = class OpenEVSEWiFi
       }).then(function () {
         this._status.emoncms_connected = 1;
         this._status.packets_success++;
-      }.bind(this)).catch(function(error) {
+      }.bind(this)).catch(function (error) {
         console.error("EmonCMS post Failed!", error);
       });
     }
-    if(this._config.mqtt.enabled && this._status.mqtt_connected)
-    {
-      for(var name in data) {
-        var topic = this._config.mqtt.topic + "/" + name;
-        this.mqttBroker.publish(topic, String(data[name]));
-      }
-    }
-    if(this._config.ohm.enabled) {
+  }
+
+  checkOhmHour() {
+    if (this._config.ohm.enabled) {
+      var ohm = new OhmHour(this._config.ohm.key);
+      ohm.check().then(function (state) {
+        if(state != this._status.ohm_hour)
+        {
+          if("True" === state)
+          {
+            this.evseConn.status(function () {
+              this._status.ohm_hour = state;
+              this._status.ohm_started_charge = true;
+            }.bind(this), "enable");
+          }
+          else if(this._status.ohm_started_charge)
+          {
+            this.evseConn.status(function () {
+              this._status.ohm_hour = state;
+              this._status.ohm_started_charge = false;
+            }.bind(this), "sleep");
+          }
+        }
+      }.bind(this)).catch(function (error) {
+        console.error("OhmHour check Failed!", error);
+      });
     }
   }
 
@@ -317,6 +353,21 @@ module.exports = class OpenEVSEWiFi
 
       if(modified) {
         this.mqttBroker = this.connectToMqttBroker();
+      }
+    }
+    if(options.ohm)
+    {
+      modified = false;
+      if(options.ohm.enabled && this._config.ohm.enabled !== options.ohm.enabled) {
+        this._config.ohm.enabled = options.ohm.enabled;
+        modified = true;
+      }
+      if(options.ohm.key && this._config.ohm.key !== options.ohm.key) {
+        this._config.ohm.key = options.ohm.key;
+        modified = true;
+      }
+      if(modified) {
+        this._status.ohm_hour = "NotConnected";
       }
     }
   }
