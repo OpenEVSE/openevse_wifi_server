@@ -2,6 +2,7 @@
 
 "use strict";
 
+const config = require("./config");
 const openevse = require("./openevse");
 const EmonCMS = require("./emoncms");
 const OhmHour = require("./ohmhour");
@@ -141,8 +142,6 @@ module.exports = class OpenEVSEWiFi
         this._status.stuckcount = stuck_count;
       }.bind(this)); }.bind(this),
     ];
-
-    this.mqttBroker = this.connectToMqttBroker();
   }
 
   runList(list, always, delay = 0, count = 0)
@@ -241,7 +240,11 @@ module.exports = class OpenEVSEWiFi
 
   start(endpoint)
   {
+    this._config = config.load(this._config);
+
     this.evseConn = openevse.connect(endpoint);
+    this.mqttBroker = this.connectToMqttBroker();
+
     this.runList(this.initList, function () {
       this.runList(this.updateList, function () {
         setTimeout(this.update.bind(this), this.updateTime);
@@ -256,7 +259,7 @@ module.exports = class OpenEVSEWiFi
 
   connectToMqttBroker()
   {
-    this.status.mqtt_connected = false;
+    this.status.mqtt_connected = 0;
     if(this.config.mqtt.enabled)
     {
       var opts = { };
@@ -269,7 +272,7 @@ module.exports = class OpenEVSEWiFi
 
       var client = mqtt.connect("mqtt://"+this.config.mqtt.server, opts);
       client.on("connect", function () {
-        this.status.mqtt_connected = true;
+        this.status.mqtt_connected = 1;
       }.bind(this));
       return client;
     }
@@ -317,6 +320,7 @@ module.exports = class OpenEVSEWiFi
       }
       if(modified) {
         this._status.emoncms_connected = 0;
+        config.save(this._config);
       }
     }
     if(options.mqtt)
@@ -353,6 +357,7 @@ module.exports = class OpenEVSEWiFi
 
       if(modified) {
         this.mqttBroker = this.connectToMqttBroker();
+        config.save(this._config);
       }
     }
     if(options.ohm)
@@ -368,6 +373,7 @@ module.exports = class OpenEVSEWiFi
       }
       if(modified) {
         this._status.ohm_hour = "NotConnected";
+        config.save(this._config);
       }
     }
   }
