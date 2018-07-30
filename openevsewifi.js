@@ -173,7 +173,7 @@ module.exports = class OpenEVSEWiFi
       temp3: this._status.temp3,
       pilot: this._status.pilot,
       state: this._status.state,
-      freeram: 0,
+      freeram: this.status.free_heap,
       divertmode: this._status.divertmode
     };
     if (this._status.volt > 0) {
@@ -285,6 +285,8 @@ module.exports = class OpenEVSEWiFi
       this._status.comm_sent = this.evseConn.comm_sent;
       this._status.comm_success = this.evseConn.comm_success;
     }
+    var mem = process.memoryUsage();
+    this._status.free_heap = mem.heapTotal - mem.heapUsed;
     return this._status;
   }
 
