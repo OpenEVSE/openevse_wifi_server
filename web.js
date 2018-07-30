@@ -64,7 +64,8 @@ app.get("/config", function (req, res) {
     mqtt_grid_ie: data.config.mqtt.grid_ie,
     www_username: data.config.www.username,
     www_password: data.config.www.password ? DUMMY_PASSWORD : "",
-    ohm_enabled: data.config.ohm.enabled
+    ohm_enabled: data.config.ohm.enabled,
+    ohmkey: data.config.ohm.key
   });
 });
 app.get("/status", function (req, res) {
