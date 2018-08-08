@@ -6,12 +6,16 @@ const config = require("./config");
 const openevse = require("./openevse");
 const EmonCMS = require("./emoncms");
 const OhmHour = require("./ohmhour");
+const divert = require("./divertmode");
 const mqtt = require("mqtt");
+const EventEmitter = require("events");
 
-module.exports = class OpenEVSEWiFi
+module.exports = class OpenEVSEWiFi extends EventEmitter
 {
   constructor()
   {
+    super();
+
     this.info = {
       firmware: "-",
       protocol: "-",
@@ -117,29 +121,41 @@ module.exports = class OpenEVSEWiFi
     // a time.
     this.updateList = [
       function () { return this.evseConn.current_capacity(function (capacity) {
-        this._status.pilot = capacity;
+        this.status = {
+          pilot: capacity
+        };
       }.bind(this)); }.bind(this),
       function () { return this.evseConn.status(function (state, elapsed) {
-        this._status.state = state;
-        this._status.elapsed = elapsed;
+        this.status = {
+          state: state,
+          elapsed: elapsed
+        };
       }.bind(this)); }.bind(this),
       function () { return this.evseConn.charging_current_voltage(function (voltage, current) {
-        this._status.voltage = voltage;
-        this._status.amp = current;
+        this.status = {
+          voltage: voltage,
+          amp: current
+        };
       }.bind(this)); }.bind(this),
       function () { return this.evseConn.temperatures(function (temp1, temp2, temp3) {
-        this._status.temp1 = temp1;
-        this._status.temp2 = temp2;
-        this._status.temp3 = temp3;
+        this.status = {
+          temp1: temp1,
+          temp2: temp2,
+          temp3: temp3
+        };
       }.bind(this)); }.bind(this),
       function () { return this.evseConn.energy(function (wattSeconds, whacc) {
-        this._status.wattsec = wattSeconds;
-        this._status.watthour = whacc;
+        this.status = {
+          wattsec: wattSeconds,
+          watthour: whacc
+        };
       }.bind(this)); }.bind(this),
       function () { return this.evseConn.fault_counters(function (gfci_count, nognd_count, stuck_count) {
-        this._status.gfcicount = gfci_count;
-        this._status.nogndcount = nognd_count;
-        this._status.stuckcount = stuck_count;
+        this.status = {
+          gfcicount: gfci_count,
+          nogndcount: nognd_count,
+          stuckcount: stuck_count
+        };
       }.bind(this)); }.bind(this),
     ];
   }
@@ -199,12 +215,14 @@ module.exports = class OpenEVSEWiFi
       var emoncms = new EmonCMS(this._config.emoncms.apikey, this._config.emoncms.server);
       emoncms.nodegroup = this._config.emoncms.node;
       emoncms.datatype = "fulljson";
-      this._status.packets_sent++;
+      this.status =  { packets_sent: this._status.packets_sent + 1 };
       emoncms.post({
         payload: data
       }).then(function () {
-        this._status.emoncms_connected = 1;
-        this._status.packets_success++;
+        this.status = {
+          emoncms_connected: 1,
+          packets_success: this._status.packets_success + 1
+        };
       }.bind(this)).catch(function (error) {
         console.error("EmonCMS post Failed!", error);
       });
@@ -220,15 +238,19 @@ module.exports = class OpenEVSEWiFi
           if("True" === state)
           {
             this.evseConn.status(function () {
-              this._status.ohm_hour = state;
-              this._status.ohm_started_charge = true;
+              this.status = {
+                ohm_hour: state,
+                ohm_started_charge: true
+              };
             }.bind(this), "enable");
           }
           else if(this._status.ohm_started_charge)
           {
             this.evseConn.status(function () {
-              this._status.ohm_hour = state;
-              this._status.ohm_started_charge = false;
+              this.status = {
+                ohm_hour: state,
+                ohm_started_charge: false
+              };
             }.bind(this), "sleep");
           }
         }
@@ -243,7 +265,19 @@ module.exports = class OpenEVSEWiFi
     this._config = config.load(this._config);
 
     this.evseConn = openevse.connect(endpoint);
+    this.evseConn.on("state", (state) => {
+      this.status = { state: state };
+    });
+
+    this.divert = new divert(this.evseConn);
+    this.divert.on("mode", (mode) => {
+      this.status = { divertmode: mode };
+    });
+
     this.mqttBroker = this.connectToMqttBroker();
+    this.on("status", (status) => {
+      this.uploadMqtt(status);
+    });
 
     this.runList(this.initList, function () {
       this.runList(this.updateList, function () {
@@ -259,7 +293,9 @@ module.exports = class OpenEVSEWiFi
 
   connectToMqttBroker()
   {
-    this.status.mqtt_connected = 0;
+    this.status = {
+      mqtt_connected: 0
+    };
     if(this.config.mqtt.enabled)
     {
       var opts = { };
@@ -271,9 +307,34 @@ module.exports = class OpenEVSEWiFi
       }
 
       var client = mqtt.connect("mqtt://"+this.config.mqtt.server, opts);
-      client.on("connect", function () {
-        this.status.mqtt_connected = 1;
-      }.bind(this));
+      client.on("connect", () =>
+      {
+        this.status = { mqtt_connected: 1 };
+        client.subscribe(this.config.mqtt.topic + "/rapi/in/#");
+        client.subscribe(this.config.mqtt.topic + "/divertmode/set");
+        if(this.config.mqtt.grid_ie) {
+          client.subscribe(this.config.mqtt.grid_ie);
+        }
+        if(this.config.mqtt.solar) {
+          client.subscribe(this.config.mqtt.solar);
+        }
+      });
+
+      client.on("message", (topic, message) => {
+        console.log(topic + ": " + message.toString());
+        if(topic.startsWith(this.config.mqtt.topic + "/rapi/in/")) {
+          // TODO
+        }
+        if(topic === this.config.mqtt.topic + "/divertmode/set") {
+          this.divert.mode = parseInt(message);
+        }
+        if(topic === this.config.mqtt.grid_ie) {
+          this.divert.grid_ie = parseFloat(message);
+        }
+        if(topic === this.config.mqtt.solar) {
+          this.divert.solar = parseFloat(message);
+        }
+      });
       return client;
     }
 
@@ -288,6 +349,24 @@ module.exports = class OpenEVSEWiFi
     var mem = process.memoryUsage();
     this._status.free_heap = mem.heapTotal - mem.heapUsed;
     return this._status;
+  }
+
+  set status(newStatus)
+  {
+    var changedData = {};
+    var changed = false;
+    for (const prop in newStatus) {
+      if (newStatus.hasOwnProperty(prop)) {
+        if(this._status[prop] !== newStatus[prop]) {
+          this._status[prop] = newStatus[prop];
+          changedData[prop] = newStatus[prop];
+          changed = true;
+        }
+      }
+    }
+    if(changed) {
+      this.emit("status", changedData);
+    }
   }
 
   get config() {
@@ -321,7 +400,7 @@ module.exports = class OpenEVSEWiFi
         modified = true;
       }
       if(modified) {
-        this._status.emoncms_connected = 0;
+        this.status = { emoncms_connected: 0 };
         config.save(this._config);
       }
     }
@@ -374,7 +453,7 @@ module.exports = class OpenEVSEWiFi
         modified = true;
       }
       if(modified) {
-        this._status.ohm_hour = "NotConnected";
+        this.status = { ohm_hour: "NotConnected" };
         config.save(this._config);
       }
     }

@@ -178,10 +178,14 @@ app.post("/apoff", function (req, res) {
 
 app.post("/divertmode", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
-  res.status(500).send("Not implemented");
+  data.divert.mode = parseInt(req.body.divertmode);
+  res.send("Divert Mode changed");
 });
 
 exports.start = function(evseApp, port) {
   data = evseApp;
+  data.on("status", (status) => {
+    ws.sendAll(status);
+  });
   app.listen(port, () => console.log("OpenEVSE WiFi Simulator listening on port " + port + "!"));
 };
