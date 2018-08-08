@@ -7,47 +7,64 @@
 
 "use strict";
 
+const EventEmitter = require("events");
 const simulator = require("./simulator_driver");
 const SerialPort = require("serialport");
 const Readline = SerialPort.parsers.Readline;
 
-function OpenEVSEError(type, message = "") {
-  this.type = type;
-  this.message = message;
+class OpenEVSEError{
+  constructor(type, message = "") {
+    this.type = type;
+    this.message = message;
+  }
 }
 
-function OpenEVSERequest()
+class OpenEVSERequest
 {
-  var self = this;
-  self._done = function() {};
-  self._error = function() {};
-  self._always = function() {};
-  self.done = function(fn) {
-    self._done = fn;
-    return self;
-  };
-  self.error = function(fn) {
-    self._error = fn;
-    return self;
-  };
-  self.always = function(fn) {
-    self._always = fn;
-    return self;
-  };
+  constructor()
+  {
+
+    this._done = function() {};
+    this._error = function() {};
+    this._always = function() {};
+  }
+
+  done(fn) {
+    this._done = fn;
+    return this;
+  }
+
+  error(fn) {
+    this._error = fn;
+    return this;
+  }
+
+  always(fn) {
+    this._always = fn;
+    return this;
+  }
 }
 
-function OpenEVSEDriverHttp(endpoint)
+class OpenEVSEDriver extends EventEmitter
 {
-  var self = this;
-  self._endpoint = endpoint;
-  if (endpoint.substring(0, 5) === "https") { self.http = require("https"); }
-  else { self.http = require("http"); }
 
-  self.rapi = function(command, callback = function() {})
+}
+
+class OpenEVSEDriverHttp extends OpenEVSEDriver
+{
+  constructor(endpoint)
+  {
+    super();
+    this._endpoint = endpoint;
+    if (endpoint.substring(0, 5) === "https") { this.http = require("https"); }
+    else { this.http = require("http"); }
+  }
+
+  rapi(command, callback = function() {})
   {
     var request = new OpenEVSERequest();
-    var url = self._endpoint + "?json=1&rapi="+encodeURI(command);
-    self.http.get(url, function (res) {
+    var url = this._endpoint + "?json=1&rapi="+encodeURI(command);
+    this.http.get(url, function (res) {
       res.setEncoding("utf8");
       var body = "";
 
@@ -76,14 +93,22 @@ function OpenEVSEDriverHttp(endpoint)
     });
 
     return request;
-  };
+  }
 }
 
-function OpenEVSEDriverSimulator()
+class OpenEVSEDriverSimulator extends OpenEVSEDriver
 {
-  var self = this;
+  constructor()
+  {
+    super();
+    simulator.onevent((data) => {
+      var eventData = data.split(" ");
+      var event = eventData.shift();
+      this.emit(event, eventData);
+    });
+  }
 
-  self.rapi = function(command, callback = function() {})
+  rapi(command, callback = function() {})
   {
     var request = new OpenEVSERequest();
     setTimeout(function () {
@@ -92,98 +117,135 @@ function OpenEVSEDriverSimulator()
     }, 1);
 
     return request;
-  };
+  }
 }
 
-function OpenEVSEDriverSerial(endpoint)
+class OpenEVSEDriverSerial extends OpenEVSEDriver
 {
-  const self = this;
-  const serial = new SerialPort(endpoint, {
-    baudRate: 115200
-  });
-
-  const parser = new Readline({ delimiter: "\r" });
-  serial.pipe(parser);
-
-  var requests = [];
-  parser.on("data", function (data)
+  constructor(endpoint)
   {
-    if(data.startsWith("$OK") || data.startsWith("$NK"))
-    {
-      if(requests.length > 0)
-      {
-        var request = requests.pop();
-        request.callback(data);
-        request.request._always();
-      }
-    }
-  });
+    super();
+    this.serial = new SerialPort(endpoint, {
+      baudRate: 115200
+    });
 
-  self.rapi = function(command, callback = function() {})
+    const parser = new Readline({ delimiter: "\r" });
+    this.serial.pipe(parser);
+
+    this.requests = [];
+    parser.on("data", function (data)
+    {
+      if(data.startsWith("$OK") || data.startsWith("$NK"))
+      {
+        if(this.requests.length > 0)
+        {
+          var request = this.requests.pop();
+          request.callback(data);
+          request.request._always();
+        }
+      }
+      else
+      {
+        var eventData = data.split(" ");
+        var event = eventData.shift();
+        this.emit(event, eventData);
+      }
+    });
+  }
+
+  rapi(command, callback = function() {})
   {
     var request = new OpenEVSERequest();
-    serial.write(command+"\r");
-    requests.push({
+    this.serial.write(command+"\r");
+    this.requests.push({
       callback: callback,
       request: request
     });
 
     return request;
-  };
+  }
 }
 
 /* exported OpenEVSE */
-function OpenEVSE(driver)
+class OpenEVSE extends EventEmitter
 {
-  var self = this;
-  self._version = "0.1";
-  self._driver = driver;
-  self.states = {
-    0: "unknown",
-    1: "not connected",
-    2: "connected",
-    3: "charging",
-    4: "vent required",
-    5: "diode check failed",
-    6: "gfci fault",
-    7: "no ground",
-    8: "stuck relay",
-    9: "gfci self-test failure",
-    10: "over temperature",
-    254: "sleeping",
-    255: "disabled"
-  };
-  self._lcd_colors = ["off", "red", "green", "yellow", "blue", "violet", "teal", "white"];
-  self._status_functions = {"disable":"FD", "enable":"FE", "sleep":"FS"};
-  self._lcd_types=["monochrome", "rgb"];
-  self._service_levels=["A", "1", "2"];
+  constructor (driver)
+  {
+    super();
+    this._version = "0.1";
+    this._driver = driver;
 
-  // Timeouts in seconds
-  self.STANDARD_SERIAL_TIMEOUT = 0.5;
-  self.RESET_SERIAL_TIMEOUT = 10;
-  self.STATUS_SERIAL_TIMEOUT = 0;
-  self.SYNC_SERIAL_TIMEOUT = 0.5;
-  self.NEWLINE_MAX_AGE = 5;
+    this.STATE_INVALID =                -1;
+    this.STATE_STARTING =                0;
+    this.STATE_NOT_CONNECTED =           1;
+    this.STATE_CONNECTED =               2;
+    this.STATE_CHARGING =                3;
+    this.STATE_VENT_REQUIRED =           4;
+    this.STATE_DIODE_CHECK_FAILED =      5;
+    this.STATE_GFI_FAULT =               6;
+    this.STATE_NO_EARTH_GROUND =         7;
+    this.STATE_STUCK_RELAY =             8;
+    this.STATE_GFI_SELF_TEST_FAILED =    9;
+    this.STATE_OVER_TEMPERATURE =       10;
+    this.STATE_SLEEPING =              254;
+    this.STATE_DISABLED =              255;
 
-  self.CORRECT_RESPONSE_PREFIXES = ("$OK", "$NK");
+    this.states = {
+      0: "unknown",
+      1: "not connected",
+      2: "connected",
+      3: "charging",
+      4: "vent required",
+      5: "diode check failed",
+      6: "gfci fault",
+      7: "no ground",
+      8: "stuck relay",
+      9: "gfci self-test failure",
+      10: "over temperature",
+      254: "sleeping",
+      255: "disabled"
+    };
 
-  self.regex = /\$([^^]*)(\^..)?/;
+    this._lcd_colors = ["off", "red", "green", "yellow", "blue", "violet", "teal", "white"];
+    this._status_functions = {"disable":"FD", "enable":"FE", "sleep":"FS"};
+    this._lcd_types=["monochrome", "rgb"];
+    this._service_levels=["A", "1", "2"];
 
-  self.comm_sent = 0;
-  self.comm_success = 0;
+    // Timeouts in seconds
+    this.STANDARD_SERIAL_TIMEOUT = 0.5;
+    this.RESET_SERIAL_TIMEOUT = 10;
+    this.STATUS_SERIAL_TIMEOUT = 0;
+    this.SYNC_SERIAL_TIMEOUT = 0.5;
+    this.NEWLINE_MAX_AGE = 5;
 
-  self._request = function(args, callback = function() {})
+    this.CORRECT_RESPONSE_PREFIXES = ("$OK", "$NK");
+
+    this.regex = /\$([^^]*)(\^..)?/;
+
+    this.comm_sent = 0;
+    this.comm_success = 0;
+
+    driver.on("$ST", (data) => {
+      this.emit("state", parseInt(data[0]));
+    });
+
+    driver.on("$WF", (data) => {
+      this.emit("wifiMode", parseInt(data[0]));
+    });
+  }
+
+  _request(args, callback = function() {})
   {
     var command = "$" + (Array.isArray(args) ? args.join("+") : args);
 
-    var request = self.rawRequest(command, function (data)
+    var request = this.rawRequest(command, (data) =>
     {
-      var match = data.match(self.regex);
+      var match = data.match(this.regex);
       if(null !== match)
       {
         var response = match[1].split(" ");
         if("OK" === response[0]) {
-          self.comm_success++;
+          this.comm_success++;
           callback(response.slice(1));
           request._done(response.slice(1));
         } else {
@@ -195,13 +257,13 @@ function OpenEVSE(driver)
     });
 
     return request;
-  };
+  }
 
-  self.rawRequest = function (command, callback = function() {})
+  rawRequest(command, callback = function() {})
   {
-    self.comm_sent++;
-    return self._driver.rapi(command, callback);
-  };
+    this.comm_sent++;
+    return this._driver.rapi(command, callback);
+  }
 
   /**
    * Get EVSE controller flags
@@ -221,9 +283,9 @@ function OpenEVSE(driver)
    * - auto_start
    * - serial_debug
    */
-  self.flags = function (callback)
+  flags(callback)
   {
-    var request = self._request("GE", function(data) {
+    var request = this._request("GE", (data) => {
       var flags = parseInt(data[1], 16);
       if(!isNaN(flags)) {
         var ret = {
@@ -246,17 +308,17 @@ function OpenEVSE(driver)
       }
     });
     return request;
-  };
+  }
 
   /*** Function operations ***/
 
   /**
    * Reset the OpenEVSE
    */
-  self.reset = function ()
+  reset()
   {
-    return self._request("FR");
-  };
+    return this._request("FR");
+  }
 
   /**
    * Set or get the RTC time
@@ -268,19 +330,19 @@ function OpenEVSE(driver)
    *
    * Returns a datetime object
    */
-  self.time = function(callback, date = false)
+  time(callback, date = false)
   {
     if(false !== date) {
-      return self._request([
+      return this._request([
         "S1", date.getFullYear() - 2000,
         date.getMonth(), date.getDate(),
         date.getHours(), date.getMinutes(),
         date.getSeconds()], function() {
-        self.time(callback);
+        this.time(callback);
       });
     }
 
-    var request = self._request("GT", function(data) {
+    var request = this._request("GT", function(data) {
       if(data.length >= 6) {
         var year = parseInt(data[0]);
         var month = parseInt(data[1]);
@@ -305,7 +367,7 @@ function OpenEVSE(driver)
       }
     });
     return request;
-  };
+  }
 
   /**
    * Set or get the charge timer
@@ -316,7 +378,7 @@ function OpenEVSE(driver)
    *
    * If any of the values is false, get the timer
    */
-  self.timer = function(callback, start = false, stop = false)
+  timer(callback, start = false, stop = false)
   {
     function addZero(val) {
       return (val < 10 ? "0" : "") + val;
@@ -329,19 +391,19 @@ function OpenEVSE(driver)
 
       if(null !== startArray && null !== stopArray)
       {
-        return self._request([
+        return this._request([
           "ST",
           parseInt(startArray[1]), parseInt(startArray[2]),
           parseInt(stopArray[1]), parseInt(stopArray[2])
         ], function() {
-          self.timer(callback);
+          this.timer(callback);
         });
       }
 
       return false;
     }
 
-    var request = self._request("GD", function(data) {
+    var request = this._request("GD", function(data) {
       if(data.length >= 4) {
         var startMinute = parseInt(data[0]);
         var startSecond = parseInt(data[1]);
@@ -365,17 +427,17 @@ function OpenEVSE(driver)
       }
     });
     return request;
-  };
+  }
 
   /**
    * Cancel the timer
    */
-  self.cancelTimer = function (callback) {
-    return self._request([
+  cancelTimer(callback) {
+    return this._request([
       "ST", 0, 0, 0, 0], function() {
       callback();
     });
-  };
+  }
 
   /**
    * Get or set the charge time limit, in minutes.
@@ -386,15 +448,15 @@ function OpenEVSE(driver)
    *
    * Returns the limit
    */
-  self.time_limit = function(callback, limit = false) {
+  time_limit(callback, limit = false) {
     if(false !== limit) {
-      return self._request(["S3", Math.round(limit/15.0)],
+      return this._request(["S3", Math.round(limit/15.0)],
         function() {
-          self.time_limit(callback);
+          this.time_limit(callback);
         });
     }
 
-    var request = self._request("G3", function(data) {
+    var request = this._request("G3", function(data) {
       if(data.length >= 1) {
         var limit = parseInt(data[0]);
 
@@ -408,7 +470,7 @@ function OpenEVSE(driver)
       }
     });
     return request;
-  };
+  }
 
   /**
    * Get or set the charge limit, in kWh.
@@ -417,15 +479,15 @@ function OpenEVSE(driver)
    *
    * Returns the limit
    */
-  self.charge_limit = function(callback, limit = false) {
+  charge_limit(callback, limit = false) {
     if(false !== limit) {
-      return self._request(["SH", limit],
+      return this._request(["SH", limit],
         function() {
-          self.charge_limit(callback);
+          this.charge_limit(callback);
         });
     }
 
-    var request = self._request("GH", function(data) {
+    var request = this._request("GH", function(data) {
       if(data.length >= 1) {
         var limit = parseInt(data[0]);
 
@@ -439,7 +501,7 @@ function OpenEVSE(driver)
       }
     });
     return request;
-  };
+  }
 
   /**
    * Set or get the ammeter settings
@@ -448,15 +510,15 @@ function OpenEVSE(driver)
    *
    * Returns scale factor and offset
    */
-  self.ammeter_settings = function(callback, scaleFactor = false, offset = false) {
+  ammeter_settings(callback, scaleFactor = false, offset = false) {
     if(false !== scaleFactor && false !== offset) {
-      return self._request(["SA", scaleFactor, offset],
+      return this._request(["SA", scaleFactor, offset],
         function() {
           callback(scaleFactor, offset);
         });
     }
 
-    var request = self._request("GA", function(data) {
+    var request = this._request("GA", function(data) {
       if(data.length >= 2) {
         var scaleFactor = parseInt(data[0]);
         var offset = parseInt(data[1]);
@@ -471,7 +533,7 @@ function OpenEVSE(driver)
       }
     });
     return request;
-  };
+  }
 
   /**
    * Set or get the current capacity
@@ -480,15 +542,15 @@ function OpenEVSE(driver)
    *
    * Returns the capacity in amperes
    */
-  self.current_capacity = function(callback, capacity = false) {
+  current_capacity(callback, capacity = false) {
     if(false !== capacity) {
-      return self._request(["SC", capacity],
+      return this._request(["SC", capacity],
         function() {
-          self.current_capacity(callback);
+          this.current_capacity(callback);
         });
     }
 
-    var request = self._request("GE", function(data) {
+    var request = this._request("GE", function(data) {
       if(data.length >= 1) {
         var capacity = parseInt(data[0]);
 
@@ -502,7 +564,7 @@ function OpenEVSE(driver)
       }
     });
     return request;
-  };
+  }
 
   /**
    * Set or get the service level
@@ -516,19 +578,19 @@ function OpenEVSE(driver)
    *
    * Returns the current service level: 0 for auto, 1 or 2
    */
-  self.service_level = function(callback, level = false) {
+  service_level(callback, level = false) {
     if(false !== level) {
-      return self._request(["SL", self._service_levels[level]],
+      return this._request(["SL", this._service_levels[level]],
         function() {
-          self.service_level(callback);
+          this.service_level(callback);
         });
     }
 
-    var request = self.flags(function(flags) {
+    var request = this.flags(function(flags) {
       callback(flags.auto_service_level ? 0 : flags.service_level, flags.service_level);
     });
     return request;
-  };
+  }
 
   /**
    * Get the current capacity range, in amperes
@@ -536,8 +598,8 @@ function OpenEVSE(driver)
    * Returns the current capacity:
    *     (min_capacity, max_capacity)
    */
-  self.current_capacity_range = function(callback) {
-    var request = self._request("GC", function(data) {
+  current_capacity_range(callback) {
+    var request = this._request("GC", function(data) {
       if(data.length >= 2) {
         var minCapacity = parseInt(data[0]);
         var maxCapacity = parseInt(data[1]);
@@ -551,7 +613,7 @@ function OpenEVSE(driver)
       }
     });
     return request;
-  };
+  }
 
   /**
    * Change the EVSE status.
@@ -568,16 +630,16 @@ function OpenEVSE(driver)
    * Returns the status of the EVSE as a string
    *
    */
-  self.status = function(callback, action = false) {
+  status(callback, action = false) {
     if(false !== action) {
-      var cmd = self._status_functions[action];
-      return self._request([cmd],
+      var cmd = this._status_functions[action];
+      return this._request([cmd],
         function() {
-          self.status(callback);
+          this.status(callback);
         });
     }
 
-    var request = self._request("GS", function(data) {
+    var request = this._request("GS", function(data) {
       if(data.length >= 1) {
         var state = parseInt(data[0]);
         var elapsed = parseInt(data[1]);
@@ -593,7 +655,7 @@ function OpenEVSE(driver)
     });
 
     return request;
-  };
+  }
 
   /**
    * if enabled == True, enable the diode check
@@ -602,21 +664,21 @@ function OpenEVSE(driver)
    *
    * Returns the diode check status
    */
-  self.diode_check = function(callback, enabled = null) {
+  diode_check(callback, enabled = null) {
     if(null !== enabled) {
-      return self._request(["FF", "D", enabled ? "1" : "0"],
+      return this._request(["FF", "D", enabled ? "1" : "0"],
         // OLD API < 4.0.1
-        // return self._request(["SD", enabled ? "1" : "0"],
+        // return this._request(["SD", enabled ? "1" : "0"],
         function() {
-          self.diode_check(callback);
+          this.diode_check(callback);
         });
     }
 
-    var request = self.flags(function(flags) {
+    var request = this.flags(function(flags) {
       callback(flags.diode_check);
     });
     return request;
-  };
+  }
 
   /**
    * if enabled == True, enable the GFI self test
@@ -625,21 +687,21 @@ function OpenEVSE(driver)
    *
    * Returns the GFI self test status
    */
-  self.gfi_self_test = function(callback, enabled = null) {
+  gfi_self_test(callback, enabled = null) {
     if(null !== enabled) {
-      return self._request(["FF F", enabled ? "1" : "0"],
+      return this._request(["FF F", enabled ? "1" : "0"],
         // OLD API < 4.0.1
-        // return self._request(["SF", enabled ? "1" : "0"],
+        // return this._request(["SF", enabled ? "1" : "0"],
         function() {
-          self.gfi_self_test(callback);
+          this.gfi_self_test(callback);
         });
     }
 
-    var request = self.flags(function(flags) {
+    var request = this.flags(function(flags) {
       callback(flags.gfi_self_test);
     });
     return request;
-  };
+  }
 
   /**
    * if enabled == True, enable the ground check
@@ -648,21 +710,21 @@ function OpenEVSE(driver)
    *
    * Returns the ground check status
    */
-  self.ground_check = function(callback, enabled = null) {
+  ground_check(callback, enabled = null) {
     if(null !== enabled) {
-      return self._request(["FF G", enabled ? "1" : "0"],
+      return this._request(["FF G", enabled ? "1" : "0"],
         // OLD API < 4.0.1
-        // return self._request(["SG", enabled ? "1" : "0"],
+        // return this._request(["SG", enabled ? "1" : "0"],
         function() {
-          self.ground_check(callback);
+          this.ground_check(callback);
         });
     }
 
-    var request = self.flags(function(flags) {
+    var request = this.flags(function(flags) {
       callback(flags.ground_check);
     });
     return request;
-  };
+  }
 
   /**
    * if enabled == True, enable the stuck relay check
@@ -671,21 +733,21 @@ function OpenEVSE(driver)
    *
    * Returns the stuck relay check status
    */
-  self.stuck_relay_check = function(callback, enabled = null) {
+  stuck_relay_check(callback, enabled = null) {
     if(null !== enabled) {
-      return self._request(["FF R", enabled ? "1" : "0"],
+      return this._request(["FF R", enabled ? "1" : "0"],
         // OLD API < 4.0.1
-        // return self._request(["SR", enabled ? "1" : "0"],
+        // return this._request(["SR", enabled ? "1" : "0"],
         function() {
-          self.stuck_relay_check(callback);
+          this.stuck_relay_check(callback);
         });
     }
 
-    var request = self.flags(function(flags) {
+    var request = this.flags(function(flags) {
       callback(flags.stuck_relay_check);
     });
     return request;
-  };
+  }
 
   /**
    * if enabled == True, enable "ventilation required check"
@@ -694,21 +756,21 @@ function OpenEVSE(driver)
    *
    * Returns the "ventilation required" status
    */
-  self.vent_required = function(callback, enabled = null) {
+  vent_required(callback, enabled = null) {
     if(null !== enabled) {
-      return self._request(["FF V", enabled ? "1" : "0"],
+      return this._request(["FF V", enabled ? "1" : "0"],
         // OLD API < 4.0.1
-        // return self._request(["SV", enabled ? "1" : "0"],
+        // return this._request(["SV", enabled ? "1" : "0"],
         function() {
-          self.vent_required(callback);
+          this.vent_required(callback);
         });
     }
 
-    var request = self.flags(function(flags) {
+    var request = this.flags(function(flags) {
       callback(flags.vent_required);
     });
     return request;
-  };
+  }
 
   /**
    * if enabled == True, enable "temperature monitoring"
@@ -718,41 +780,41 @@ function OpenEVSE(driver)
    * Returns the "temperature monitoring" status
    */
 
-  self.temp_check = function(callback, enabled = null) {
+  temp_check(callback, enabled = null) {
     if(null !== enabled) {
-      return self._request(["FF T", enabled ? "1" : "0"],
+      return this._request(["FF T", enabled ? "1" : "0"],
         function() {
-          self.temp_check(callback);
+          this.temp_check(callback);
         });
     }
 
-    var request = self.flags(function(flags) {
+    var request = this.flags(function(flags) {
       callback(flags.temp_check);
     });
     return request;
-  };
+  }
 
 
   // OLD API < 4.0.1
-  // self.temp_check = function(callback, enabled = null) {
+  // temp_check(callback, enabled = null) {
   //   if(null !== enabled)
   //   {
   //     if(enabled)
   //     {
-  //       return self._request("GO", function(data) {
-  //         self._request(["SO", data[0], data[1]],
+  //       return this._request("GO", function(data) {
+  //         this._request(["SO", data[0], data[1]],
   //           function() {
-  //             self.temp_check(callback);
+  //             this.temp_check(callback);
   //           });
   //       });
   //     }
   // **NOTE: SO has been removed totally in RAPI 4.0.0**
-  //     return self._request(["SO", "0", "0"],
+  //     return this._request(["SO", "0", "0"],
   //       function() {
-  //         self.temp_check(callback);
+  //         this.temp_check(callback);
   //       });
   //   }
-  //   var request = self.flags(function(flags) {
+  //   var request = this.flags(function(flags) {
   //     callback(flags.temp_check);
   //   });
   //   return request;
@@ -763,15 +825,15 @@ function OpenEVSE(driver)
   /**
    *
    */
-  self.over_temperature_thresholds = function(callback, ambientthresh = false, irthresh = false) {
+  over_temperature_thresholds(callback, ambientthresh = false, irthresh = false) {
     if(false !== ambientthresh && false !== irthresh) {
-      return self._request(["SO", ambientthresh, irthresh],
+      return this._request(["SO", ambientthresh, irthresh],
         function() {
-          self.over_temperature_thresholds(callback);
+          this.over_temperature_thresholds(callback);
         });
     }
 
-    var request = self._request("GO", function(data) {
+    var request = this._request("GO", function(data) {
       if(data.length >= 2) {
         var ambientthresh = parseInt(data[0]);
         var irthresh = parseInt(data[1]);
@@ -786,13 +848,13 @@ function OpenEVSE(driver)
       }
     });
     return request;
-  };
+  }
 
   /**
    *
    */
-  self.charging_current_voltage = function(callback) {
-    var request = self._request("GG", function(data) {
+  charging_current_voltage(callback) {
+    var request = this._request("GG", function(data) {
       if(data.length >= 2) {
         var voltage = parseInt(data[0]);
         var current = parseInt(data[1]);
@@ -807,13 +869,13 @@ function OpenEVSE(driver)
       }
     });
     return request;
-  };
+  }
 
   /**
    *
    */
-  self.temperatures = function(callback) {
-    var request = self._request("GP", function(data) {
+  temperatures(callback) {
+    var request = this._request("GP", function(data) {
       if(data.length >= 2) {
         var temp1 = parseInt(data[0]);
         var temp2 = parseInt(data[1]);
@@ -829,13 +891,13 @@ function OpenEVSE(driver)
       }
     });
     return request;
-  };
+  }
 
   /**
    *
    */
-  self.energy = function(callback) {
-    var request = self._request("GU", function(data) {
+  energy(callback) {
+    var request = this._request("GU", function(data) {
       if(data.length >= 2) {
         var wattSeconds = parseInt(data[0]);
         var whacc = parseInt(data[1]);
@@ -850,13 +912,13 @@ function OpenEVSE(driver)
       }
     });
     return request;
-  };
+  }
 
   /**
    *
    */
-  self.fault_counters = function(callback) {
-    var request = self._request("GF", function(data) {
+  fault_counters(callback) {
+    var request = this._request("GF", function(data) {
       if(data.length >= 2) {
         var gfci_count = parseInt(data[0], 16);
         var nognd_count = parseInt(data[1], 16);
@@ -872,13 +934,13 @@ function OpenEVSE(driver)
       }
     });
     return request;
-  };
+  }
 
   /**
    *
    */
-  self.version = function(callback) {
-    var request = self._request("GV", function(data) {
+  version(callback) {
+    var request = this._request("GV", function(data) {
       if(data.length >= 2) {
         var version = data[0];
         var protocol = data[1];
@@ -889,7 +951,7 @@ function OpenEVSE(driver)
       }
     });
     return request;
-  };
+  }
 }
 
 exports.connect = function(endpoint)

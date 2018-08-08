@@ -3,6 +3,21 @@
 
 "use strict";
 
+const STATE_INVALID =                -1;
+const STATE_STARTING =                0;
+const STATE_NOT_CONNECTED =           1;
+const STATE_CONNECTED =               2;
+const STATE_CHARGING =                3;
+const STATE_VENT_REQUIRED =           4;
+const STATE_DIODE_CHECK_FAILED =      5;
+const STATE_GFI_FAULT =               6;
+const STATE_NO_EARTH_GROUND =         7;
+const STATE_STUCK_RELAY =             8;
+const STATE_GFI_SELF_TEST_FAILED =    9;
+const STATE_OVER_TEMPERATURE =       10;
+const STATE_SLEEPING =              254;
+const STATE_DISABLED =              255;
+
 var autoService = 1;
 var autoStart   = 0;
 var serialDebug = 0;
@@ -16,6 +31,9 @@ var groundt     = 0;
 var relayt      = 0;
 var gfcit       = 0;
 var tempt       = 0;
+
+var state       = STATE_STARTING;
+var elapsed     = 108;
 
 var ffSupported = true;
 
@@ -41,6 +59,31 @@ function checksum(msg)
   return msg + "^" + checkString;
 }
 
+function setState(newState)
+{
+  if(state != newState) {
+    state = newState;
+    eventCallback("$ST " + state.toString());
+  }
+}
+
+function startCharging()
+{
+  setTimeout(() => {
+    setState(STATE_CHARGING);
+  }, 1500);
+}
+
+setTimeout(() => {
+  setState(STATE_CONNECTED);
+  startCharging();
+}, 1000);
+
+var eventCallback = function() {};
+exports.onevent = function(callback) {
+  eventCallback = callback;
+};
+
 exports.rapi = function(rapi)
 {
   if(commandEcho) {
@@ -48,8 +91,6 @@ exports.rapi = function(rapi)
   }
 
   var dummyData = {
-    "GT": checksum("$OK 18 0 25 23 54 27"),
-    "GE": checksum("$OK 20 0229"),
     "GC": checksum("$OK 10 80"),
     "G3": checksum("$OK 0"),
     "GH": checksum("$OK 0"),
@@ -57,7 +98,6 @@ exports.rapi = function(rapi)
     "GD": checksum("$OK 0 0 0 0"),
     "GU": checksum("$OK 0 54"),
     "GF": checksum("$OK 0 c 0"),
-    "GS": checksum("$OK 3 108"),
     "GG": checksum("$OK 0 -1"),
     "GP": checksum("$OK 247 0 230"),
     "GA": checksum("$OK 220 0"),
@@ -108,6 +148,12 @@ exports.rapi = function(rapi)
     break;
   }
 
+  case "GS": {
+    resp = checksum("$OK " + state.toString() + " " + elapsed.toString());
+    success = true;
+    break;
+  }
+
   case "FF": {
     if(ffSupported && request.length >= 3)
     {
@@ -154,6 +200,28 @@ exports.rapi = function(rapi)
       }
     }
   } break;
+
+  case "FS": {
+    setState(STATE_SLEEPING);
+    success = true;
+    resp = checksum("$OK");
+    break;
+  }
+
+  case "FD": {
+    setState(STATE_DISABLED);
+    success = true;
+    resp = checksum("$OK");
+    break;
+  }
+
+  case "FE": {
+    setState(STATE_CONNECTED);
+    startCharging();
+    success = true;
+    resp = checksum("$OK");
+    break;
+  }
 
   case "SD": {
     if(!ffSupported && request.length >= 2) {
