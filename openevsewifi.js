@@ -276,6 +276,20 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
     this.divert.on("mode", (mode) => {
       this.status = { divertmode: mode };
     });
+    this.divert.on("charge_rate", (charge_rate) => {
+      // the divert mode changed the current, update our state
+      this.status = { pilot: charge_rate };
+
+      // Bit of a hack, get new values for the live charging current.
+      // This helps with testing with the Node-Red emon Pi simulator and making
+      // sure we get a Grid I/E value that includes the charging current
+      this.evseConn.charging_current_voltage((voltage, current) => {
+        this.status = {
+          voltage: voltage,
+          amp: current
+        };
+      });
+    });
 
     this.mqttBroker = this.connectToMqttBroker();
     this.on("status", (status) => {
