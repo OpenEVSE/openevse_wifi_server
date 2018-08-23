@@ -24,9 +24,9 @@ class OpenEVSERequest
   constructor()
   {
 
-    this._done = function() {};
-    this._error = function() {};
-    this._always = function() {};
+    this._done = () => {};
+    this._error = () => {};
+    this._always = () => {};
   }
 
   done(fn) {
@@ -60,19 +60,19 @@ class OpenEVSEDriverHttp extends OpenEVSEDriver
     else { this.http = require("http"); }
   }
 
-  rapi(command, callback = function() {})
+  rapi(command, callback = () => {})
   {
     var request = new OpenEVSERequest();
     var url = this._endpoint + "?json=1&rapi="+encodeURI(command);
-    this.http.get(url, function (res) {
+    this.http.get(url, (res) => {
       res.setEncoding("utf8");
       var body = "";
 
-      res.on("data", function (chunk) {
+      res.on("data", (chunk) => {
         body += chunk;
       });
 
-      res.on("end", function() {
+      res.on("end", () => {
         var data;
         try {
           data = JSON.parse(body);
@@ -83,10 +83,10 @@ class OpenEVSEDriverHttp extends OpenEVSEDriver
           request._error(new OpenEVSEError("BadBody", body));
           request._always();
         }
-      }).on("error", function () {
+      }).on("error", () => {
         request._error(new OpenEVSEError("RequestFailed"));
         request._always();
-      }).setTimeout(6000, function () {
+      }).setTimeout(6000, () => {
         request._error(new OpenEVSEError("HTTPTimeout"));
         request._always();
       });
@@ -108,10 +108,10 @@ class OpenEVSEDriverSimulator extends OpenEVSEDriver
     });
   }
 
-  rapi(command, callback = function() {})
+  rapi(command, callback = () => {})
   {
     var request = new OpenEVSERequest();
-    setTimeout(function () {
+    setTimeout(() => {
       callback(simulator.rapi(command));
       request._always();
     }, 1);
@@ -133,8 +133,7 @@ class OpenEVSEDriverSerial extends OpenEVSEDriver
     this.serial.pipe(parser);
 
     this.requests = [];
-    parser.on("data", function (data)
-    {
+    parser.on("data", (data) => {
       if(data.startsWith("$OK") || data.startsWith("$NK"))
       {
         if(this.requests.length > 0)
@@ -153,7 +152,7 @@ class OpenEVSEDriverSerial extends OpenEVSEDriver
     });
   }
 
-  rapi(command, callback = function() {})
+  rapi(command, callback = () => {})
   {
     var request = new OpenEVSERequest();
     this.serial.write(command+"\r");
@@ -234,9 +233,9 @@ class OpenEVSE extends EventEmitter
     });
   }
 
-  _request(args, callback = function() {})
+  _request(args, callback = () => {})
   {
-    var command = "$" + (Array.isArray(args) ? args.join("+") : args);
+    var command = "$" + (Array.isArray(args) ? args.join(" ") : args);
 
     var request = this.rawRequest(command, (data) =>
     {
@@ -259,7 +258,7 @@ class OpenEVSE extends EventEmitter
     return request;
   }
 
-  rawRequest(command, callback = function() {})
+  rawRequest(command, callback = () => {})
   {
     this.comm_sent++;
     return this._driver.rapi(command, callback);
@@ -337,12 +336,12 @@ class OpenEVSE extends EventEmitter
         "S1", date.getFullYear() - 2000,
         date.getMonth(), date.getDate(),
         date.getHours(), date.getMinutes(),
-        date.getSeconds()], function() {
+        date.getSeconds()], () => {
         this.time(callback);
       });
     }
 
-    var request = this._request("GT", function(data) {
+    var request = this._request("GT", (data) => {
       if(data.length >= 6) {
         var year = parseInt(data[0]);
         var month = parseInt(data[1]);
@@ -395,7 +394,7 @@ class OpenEVSE extends EventEmitter
           "ST",
           parseInt(startArray[1]), parseInt(startArray[2]),
           parseInt(stopArray[1]), parseInt(stopArray[2])
-        ], function() {
+        ], () => {
           this.timer(callback);
         });
       }
@@ -403,7 +402,7 @@ class OpenEVSE extends EventEmitter
       return false;
     }
 
-    var request = this._request("GD", function(data) {
+    var request = this._request("GD", (data) => {
       if(data.length >= 4) {
         var startMinute = parseInt(data[0]);
         var startSecond = parseInt(data[1]);
@@ -434,7 +433,7 @@ class OpenEVSE extends EventEmitter
    */
   cancelTimer(callback) {
     return this._request([
-      "ST", 0, 0, 0, 0], function() {
+      "ST", 0, 0, 0, 0], () => {
       callback();
     });
   }
@@ -451,12 +450,12 @@ class OpenEVSE extends EventEmitter
   time_limit(callback, limit = false) {
     if(false !== limit) {
       return this._request(["S3", Math.round(limit/15.0)],
-        function() {
+        () => {
           this.time_limit(callback);
         });
     }
 
-    var request = this._request("G3", function(data) {
+    var request = this._request("G3", (data) => {
       if(data.length >= 1) {
         var limit = parseInt(data[0]);
 
@@ -482,12 +481,12 @@ class OpenEVSE extends EventEmitter
   charge_limit(callback, limit = false) {
     if(false !== limit) {
       return this._request(["SH", limit],
-        function() {
+        () => {
           this.charge_limit(callback);
         });
     }
 
-    var request = this._request("GH", function(data) {
+    var request = this._request("GH", (data) => {
       if(data.length >= 1) {
         var limit = parseInt(data[0]);
 
@@ -513,12 +512,12 @@ class OpenEVSE extends EventEmitter
   ammeter_settings(callback, scaleFactor = false, offset = false) {
     if(false !== scaleFactor && false !== offset) {
       return this._request(["SA", scaleFactor, offset],
-        function() {
+        () => {
           callback(scaleFactor, offset);
         });
     }
 
-    var request = this._request("GA", function(data) {
+    var request = this._request("GA", (data) => {
       if(data.length >= 2) {
         var scaleFactor = parseInt(data[0]);
         var offset = parseInt(data[1]);
@@ -542,15 +541,28 @@ class OpenEVSE extends EventEmitter
    *
    * Returns the capacity in amperes
    */
-  current_capacity(callback, capacity = false) {
-    if(false !== capacity) {
-      return this._request(["SC", capacity],
-        function() {
+  current_capacity(callback, capacity = false, volatile = false) {
+    if(false !== capacity)
+    {
+      var args = ["SC", capacity];
+      if(volatile) {
+        // Try and set current with new API with volatile flag (don't save the current rate to EEPROM)
+        args.push("V");
+      }
+      return this._request(args,
+        () => {
           this.current_capacity(callback);
+        })
+        .error(() => {
+          // If we got an error it could be because the new API is not supported, try
+          // again without the volitile flag
+          if(volatile) {
+            this.current_capacity(callback, capacity);
+          }
         });
     }
 
-    var request = this._request("GE", function(data) {
+    var request = this._request("GE", (data) => {
       if(data.length >= 1) {
         var capacity = parseInt(data[0]);
 
@@ -581,12 +593,12 @@ class OpenEVSE extends EventEmitter
   service_level(callback, level = false) {
     if(false !== level) {
       return this._request(["SL", this._service_levels[level]],
-        function() {
+        () => {
           this.service_level(callback);
         });
     }
 
-    var request = this.flags(function(flags) {
+    var request = this.flags((flags) => {
       callback(flags.auto_service_level ? 0 : flags.service_level, flags.service_level);
     });
     return request;
@@ -599,7 +611,7 @@ class OpenEVSE extends EventEmitter
    *     (min_capacity, max_capacity)
    */
   current_capacity_range(callback) {
-    var request = this._request("GC", function(data) {
+    var request = this._request("GC", (data) => {
       if(data.length >= 2) {
         var minCapacity = parseInt(data[0]);
         var maxCapacity = parseInt(data[1]);
@@ -634,12 +646,12 @@ class OpenEVSE extends EventEmitter
     if(false !== action) {
       var cmd = this._status_functions[action];
       return this._request([cmd],
-        function() {
+        () => {
           this.status(callback);
         });
     }
 
-    var request = this._request("GS", function(data) {
+    var request = this._request("GS", (data) => {
       if(data.length >= 1) {
         var state = parseInt(data[0]);
         var elapsed = parseInt(data[1]);
@@ -669,12 +681,12 @@ class OpenEVSE extends EventEmitter
       return this._request(["FF", "D", enabled ? "1" : "0"],
         // OLD API < 4.0.1
         // return this._request(["SD", enabled ? "1" : "0"],
-        function() {
+        () => {
           this.diode_check(callback);
         });
     }
 
-    var request = this.flags(function(flags) {
+    var request = this.flags((flags) => {
       callback(flags.diode_check);
     });
     return request;
@@ -692,12 +704,12 @@ class OpenEVSE extends EventEmitter
       return this._request(["FF F", enabled ? "1" : "0"],
         // OLD API < 4.0.1
         // return this._request(["SF", enabled ? "1" : "0"],
-        function() {
+        () => {
           this.gfi_self_test(callback);
         });
     }
 
-    var request = this.flags(function(flags) {
+    var request = this.flags((flags) => {
       callback(flags.gfi_self_test);
     });
     return request;
@@ -715,12 +727,12 @@ class OpenEVSE extends EventEmitter
       return this._request(["FF G", enabled ? "1" : "0"],
         // OLD API < 4.0.1
         // return this._request(["SG", enabled ? "1" : "0"],
-        function() {
+        () => {
           this.ground_check(callback);
         });
     }
 
-    var request = this.flags(function(flags) {
+    var request = this.flags((flags) => {
       callback(flags.ground_check);
     });
     return request;
@@ -738,12 +750,12 @@ class OpenEVSE extends EventEmitter
       return this._request(["FF R", enabled ? "1" : "0"],
         // OLD API < 4.0.1
         // return this._request(["SR", enabled ? "1" : "0"],
-        function() {
+        () => {
           this.stuck_relay_check(callback);
         });
     }
 
-    var request = this.flags(function(flags) {
+    var request = this.flags((flags) => {
       callback(flags.stuck_relay_check);
     });
     return request;
@@ -761,12 +773,12 @@ class OpenEVSE extends EventEmitter
       return this._request(["FF V", enabled ? "1" : "0"],
         // OLD API < 4.0.1
         // return this._request(["SV", enabled ? "1" : "0"],
-        function() {
+        () => {
           this.vent_required(callback);
         });
     }
 
-    var request = this.flags(function(flags) {
+    var request = this.flags((flags) => {
       callback(flags.vent_required);
     });
     return request;
@@ -783,12 +795,12 @@ class OpenEVSE extends EventEmitter
   temp_check(callback, enabled = null) {
     if(null !== enabled) {
       return this._request(["FF T", enabled ? "1" : "0"],
-        function() {
+        () => {
           this.temp_check(callback);
         });
     }
 
-    var request = this.flags(function(flags) {
+    var request = this.flags((flags) => {
       callback(flags.temp_check);
     });
     return request;
@@ -801,20 +813,20 @@ class OpenEVSE extends EventEmitter
   //   {
   //     if(enabled)
   //     {
-  //       return this._request("GO", function(data) {
+  //       return this._request("GO", (data) => {
   //         this._request(["SO", data[0], data[1]],
-  //           function() {
+  //           () => {
   //             this.temp_check(callback);
   //           });
   //       });
   //     }
   // **NOTE: SO has been removed totally in RAPI 4.0.0**
   //     return this._request(["SO", "0", "0"],
-  //       function() {
+  //       () => {
   //         this.temp_check(callback);
   //       });
   //   }
-  //   var request = this.flags(function(flags) {
+  //   var request = this.flags((flags) => {
   //     callback(flags.temp_check);
   //   });
   //   return request;
@@ -828,12 +840,12 @@ class OpenEVSE extends EventEmitter
   over_temperature_thresholds(callback, ambientthresh = false, irthresh = false) {
     if(false !== ambientthresh && false !== irthresh) {
       return this._request(["SO", ambientthresh, irthresh],
-        function() {
+        () => {
           this.over_temperature_thresholds(callback);
         });
     }
 
-    var request = this._request("GO", function(data) {
+    var request = this._request("GO", (data) => {
       if(data.length >= 2) {
         var ambientthresh = parseInt(data[0]);
         var irthresh = parseInt(data[1]);
@@ -854,10 +866,10 @@ class OpenEVSE extends EventEmitter
    *
    */
   charging_current_voltage(callback) {
-    var request = this._request("GG", function(data) {
+    var request = this._request("GG", (data) => {
       if(data.length >= 2) {
-        var voltage = parseInt(data[0]);
-        var current = parseInt(data[1]);
+        var current = parseInt(data[0]);
+        var voltage = parseInt(data[1]);
 
         if(!isNaN(voltage) && !isNaN(current)) {
           callback(voltage, current);
@@ -875,7 +887,7 @@ class OpenEVSE extends EventEmitter
    *
    */
   temperatures(callback) {
-    var request = this._request("GP", function(data) {
+    var request = this._request("GP", (data) => {
       if(data.length >= 2) {
         var temp1 = parseInt(data[0]);
         var temp2 = parseInt(data[1]);
@@ -897,7 +909,7 @@ class OpenEVSE extends EventEmitter
    *
    */
   energy(callback) {
-    var request = this._request("GU", function(data) {
+    var request = this._request("GU", (data) => {
       if(data.length >= 2) {
         var wattSeconds = parseInt(data[0]);
         var whacc = parseInt(data[1]);
@@ -918,7 +930,7 @@ class OpenEVSE extends EventEmitter
    *
    */
   fault_counters(callback) {
-    var request = this._request("GF", function(data) {
+    var request = this._request("GF", (data) => {
       if(data.length >= 2) {
         var gfci_count = parseInt(data[0], 16);
         var nognd_count = parseInt(data[1], 16);
@@ -940,7 +952,7 @@ class OpenEVSE extends EventEmitter
    *
    */
   version(callback) {
-    var request = this._request("GV", function(data) {
+    var request = this._request("GV", (data) => {
       if(data.length >= 2) {
         var version = data[0];
         var protocol = data[1];
