@@ -17,11 +17,17 @@ module.exports = class DivertMode extends EventEmitter
     this.NORMAL = 1;
     this.ECO = 2;
 
+    this.SERVICE_LEVEL1_VOLTAGE = 110;
+    this.SERVICE_LEVEL2_VOLTAGE = 240;
+    this._voltage = this.SERVICE_LEVEL1_VOLTAGE;
+
+    this.GRID_IE_RESERVE_POWER = 100;
+
     this._mode = this.NORMAL;
+    this._state = openevse.STATE_INVALID;
 
     this.min_charge_current = 6;
     this.max_charge_current = 32;
-    this.charge_rate = 0;
   }
 
   get mode() {
@@ -38,7 +44,6 @@ module.exports = class DivertMode extends EventEmitter
         this.openevse.current_capacity(() => {}, this.max_charge_current);
         break;
       case this.ECO:
-        this.charge_rate = 0;
         // Read the current charge current, assume this is the max set by the user
         this.openevse.current_capacity((capacity) => {
           this.max_charge_current = capacity;
@@ -53,13 +58,81 @@ module.exports = class DivertMode extends EventEmitter
 
   set state(value)
   {
+    this._state = value;
+    if(this.openevse.STATE_NOT_CONNECTED === value) {
+      this.mode = this.NORMAL;
+    }
+  }
+
+  set service(service) {
+    this._voltage = service ? this.SERVICE_LEVEL1_VOLTAGE : this.SERVICE_LEVEL2_VOLTAGE;
+  }
+
+  set charge_rate(value)
+  {
+    var charge_rate = value;
+
+    // When chargine we don't want drop below the minimumm charge rate
+    // This avoids undue stress on the relays
+    if(this._state != this.openevse.STATE_SLEEPING) {
+      charge_rate = Math.max(charge_rate, this.min_charge_current);
+    }
+
+    if(charge_rate >= this.min_charge_current)
+    {
+      // Cap the charge rate at the configured maximum
+      charge_rate = Math.min(charge_rate, this.max_charge_current);
+
+      // Read the current charge rate
+      this.openevse.current_capacity((current_charge_rate) => {
+        // Change the charge rate if needed
+        if(current_charge_rate != charge_rate)
+        {
+          // Set charge rate
+          this.openevse.current_capacity(() => { this.startCharge; }, charge_rate, true);
+        } else {
+          this.startCharge();
+        }
+      });
+    }
+  }
+
+  startCharge() {
+    // If charge rate > min current and EVSE is sleeping then start charging
+    if (this._state == this.openevse.STATE_SLEEPING) {
+      this.openevse.status(() => { }, "enable");
+    }
   }
 
   set grid_ie(value)
   {
+    if(this.ECO !== this.mode) {
+      return;
+    }
+
+    var Igrid_ie = value / this._voltage;
+    this.openevse.charging_current_voltage((voltage, milliAmps) => {
+      var amps = milliAmps / 1000.0;
+      Igrid_ie -= amps;
+
+      if(Igrid_ie < 0) {
+        // Have excess power
+        var reserve = this.GRID_IE_RESERVE_POWER / this._voltage;
+        this.charge_rate = Math.floor(-Igrid_ie - reserve);
+      } else {
+        // no excess, so use the min charge
+        this.charge_rate = 0;
+      }
+    });
   }
 
   set solar(value)
   {
+    if(this.ECO !== this.mode) {
+      return;
+    }
+
+    var Isolar = value / this._voltage;
+    this.charge_rate = Isolar;
   }
 };
