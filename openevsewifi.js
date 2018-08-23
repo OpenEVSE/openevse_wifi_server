@@ -93,8 +93,9 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
     };
 
     // Time between sending a command to the OpenEVSE
-    this.updateTime = 500;
-    this.uploadTime = 30 * 1000;
+    this.updateTime = 200;
+    this.uploadTime = 20 * 1000;
+    this.ohmTime = 60 * 1000;
 
     // List of items to update on calling update on startup
     this.initList = [
@@ -114,6 +115,7 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
         this.openevse.relayt = flags.stuck_relay_check;
         this.openevse.gfcit = flags.gfci_test;
         this.openevse.tempt = flags.temp_ck;
+        this.divert.service = flags.service;
       }.bind(this)); }.bind(this),
     ];
 
@@ -168,11 +170,11 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
     }
 
     var updateFn = list[count];
-    updateFn().always(function () {
-      setTimeout(function () {
+    updateFn().always( () => {
+      setTimeout( () => {
         this.runList(list, always.bind(this), delay, count + 1);
-      }.bind(this), delay);
-    }.bind(this));
+      }, delay);
+    });
   }
 
   update() {
@@ -198,7 +200,8 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
 
     this.uploadEmonCms(data);
     this.uploadMqtt(data);
-    this.checkOhmHour();
+
+    setTimeout(this.update.bind(this), this.uploadTime);
   }
 
   uploadMqtt(data) {
@@ -277,14 +280,17 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
     this.mqttBroker = this.connectToMqttBroker();
     this.on("status", (status) => {
       this.uploadMqtt(status);
+      if(status.state) {
+        this.divert.state = status.state;
+      }
     });
 
     this.runList(this.initList, function () {
-      this.runList(this.updateList, function () {
-        setTimeout(this.update.bind(this), this.updateTime);
-        setInterval(this.upload.bind(this), this.uploadTime);
-      }.bind(this));
+      this.update();
     }.bind(this));
+
+
+    setInterval(this.checkOhmHour.bind(this), this.ohmTime);
   }
 
   rapi(cmd, callback) {
