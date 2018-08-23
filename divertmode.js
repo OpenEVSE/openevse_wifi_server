@@ -1,4 +1,4 @@
-// OhmHour check library
+// Solar PV Divert management
 
 /* jshint node: true, esversion: 6*/
 
