@@ -31,6 +31,8 @@ var groundt     = 0;
 var relayt      = 0;
 var gfcit       = 0;
 var tempt       = 0;
+var min_charge  = 6;
+var max_charge  = 32;
 
 var state       = STATE_STARTING;
 var elapsed     = 108;
@@ -98,7 +100,6 @@ exports.rapi = function(rapi)
     "GD": checksum("$OK 0 0 0 0"),
     "GU": checksum("$OK 0 54"),
     "GF": checksum("$OK 0 c 0"),
-    "GG": checksum("$OK 0 -1"),
     "GP": checksum("$OK 247 0 230"),
     "GA": checksum("$OK 220 0"),
     "GV": checksum("$OK DEMO 3.0.1")
@@ -150,6 +151,14 @@ exports.rapi = function(rapi)
 
   case "GS": {
     resp = checksum("$OK " + state.toString() + " " + elapsed.toString());
+    success = true;
+    break;
+  }
+
+  case "GG": {
+    var current = STATE_CHARGING === state && pilot > 0 ? Math.floor((pilot - Math.random()) * 1000) : 0;
+    var voltage = -1;
+    resp = checksum("$OK " + current.toString() + " " + voltage.toString());
     success = true;
     break;
   }
@@ -220,6 +229,23 @@ exports.rapi = function(rapi)
     startCharging();
     success = true;
     resp = checksum("$OK");
+    break;
+  }
+
+  case "SC": {
+    if(request.length >= 2) {
+      pilot = parseInt(request[1]);
+      if(pilot < min_charge) {
+        pilot = min_charge;
+        resp = checksum("$NK");
+      } else if(pilot > max_charge) {
+        pilot = max_charge;
+        resp = checksum("$NK");
+      } else {
+        resp = checksum("$OK");
+      }
+      success = true;
+    }
     break;
   }
 
