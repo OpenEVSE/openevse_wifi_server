@@ -90,7 +90,11 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
       gfcicount: 0,
       nogndcount: 0,
       stuckcount: 0,
-      divertmode: 1
+      divertmode: 1,
+      solar: 0,
+      grid_ie: 0,
+      charge_rate: 0,
+      divert_update: 0
     };
 
     // Time between sending a command to the OpenEVSE
