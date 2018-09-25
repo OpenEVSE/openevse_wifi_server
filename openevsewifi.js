@@ -3,10 +3,11 @@
 "use strict";
 
 const config = require("./config");
+const divert = require("./divertmode");
+
 const openevse = require("openevse");
 const EmonCMS = require("emoncms");
-const OhmHour = require("./ohmhour");
-const divert = require("./divertmode");
+const OhmHour = require("ohmhour");
 const mqtt = require("mqtt");
 const EventEmitter = require("events");
 
