@@ -13,7 +13,7 @@ var data = false;
 //
 
 // Setup the static content
-app.use(express.static(path.join(__dirname, "../src/data"), { index: "home.htm" }));
+app.use(express.static(path.join(__dirname, "../gui/dist"), { index: "home.html" }));
 
 // Setup the websocket
 app.ws("/ws", function(ws) {
