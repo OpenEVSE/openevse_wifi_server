@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Simple emulation of OpenEVSE WiFi WebSocket server",
   "main": "src/app.js",
+  "files": [
+    "src/"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/app.js",
