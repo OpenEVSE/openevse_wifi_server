@@ -1,3 +1,0 @@
-[submodule "gui"]
-	path = gui
-	url = https://github.com/jeremypoulter/openevse_wifi_gui.git

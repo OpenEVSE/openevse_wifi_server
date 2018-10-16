@@ -19,6 +19,7 @@
     "mqtt": "^2.18.0",
     "ohmhour": "git+https://github.com/jeremypoulter/node-ohmhour.git",
     "openevse": "git+https://github.com/jeremypoulter/node-openevse.git",
+    "openevse_wifi_gui": "git+https://github.com/jeremypoulter/openevse_wifi_gui.git",
     "serialport": "^6.2.0",
     "ws": "^4.0.0",
     "xmldoc": "^1.1.0"

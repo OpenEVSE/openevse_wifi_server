@@ -1,5 +1,4 @@
 const express = require("express");
-const path = require("path");
 const bodyParser = require("body-parser");
 
 const app = express();
@@ -13,7 +12,7 @@ var data = false;
 //
 
 // Setup the static content
-app.use(express.static(path.join(__dirname, "../gui/dist"), { index: "home.html" }));
+app.use(express.static(require("openevse_wifi_gui"), { index: "home.html" }));
 
 // Setup the websocket
 app.ws("/ws", function(ws) {
