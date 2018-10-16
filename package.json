@@ -17,7 +17,7 @@
     "body-parser": "^1.18.2",
     "emoncms": "git+https://github.com/jeremypoulter/node-emoncms.git",
     "express": "^4.16.3",
-    "express-ws": "^3.0.0",
+    "express-ws": "^4.0.0",
     "minimist": "^1.2.0",
     "mqtt": "^2.18.0",
     "ohmhour": "git+https://github.com/jeremypoulter/node-ohmhour.git",
