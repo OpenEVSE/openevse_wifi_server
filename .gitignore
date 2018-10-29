@@ -66,6 +66,8 @@ full-upload.sh
 
 # Simulator
 node_modules
+coverage
+.nyc_output
 
 .vagrant
 ubuntu-xenial-16.04-cloudimg-console.log
