@@ -1,6 +1,6 @@
 {
   "name": "openevse_wifi",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Simple emulation of OpenEVSE WiFi WebSocket server",
   "main": "src/app.js",
   "bin": {
