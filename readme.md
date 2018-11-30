@@ -1,8 +1,7 @@
-# OpenEVSE WiFi Simulator
+# OpenEVSE WiFi Node Interface
 
-Node web server app to simulate an OpenEVSE WiFi gateway, usually running on ESP8266 communicating with openevse controller via serial RAPI API
+Node web app for OpenEVSE WiFi gateway, can be run on embeded Linux e.g Raspberry Pi or OrangePi connected to a openevse controller via serial.
 
-*This simulator is for demo/testing, to get a feel for the interface. Not all features have been implemented fully.*
 
 ## Requirements
 
@@ -15,16 +14,49 @@ Tested with `npm V5.6.0` and nodejs `v9.5.0`.
 If a new version of nodejs is not available for your distribution you may need to update, [see nodejs install page](https://nodejs.org/en/download/package-manager/#debian-and-ubuntu-based-linux-distributions).
 
 
+## Produciton
 
-## Setup
+Install NPM package:
+
+`npm install -g openevse_wifi`
+
+Run with:
+
+`openevse_wifi`
+
+
+## Development
+
+Install local version running from source:
 
 ```
-cd simulator
+git clone <this-repo>
 npm install
-nodejs app.js --port 3000
+cd src
 ```
+
+
+Run using the following, where `<endpoint` is the serial port where the open_evse controller
+
+
+`nodejs app.js --port 3000 --endpoint <endpoint>`
+
+e.g
+
+`nodejs app.js --port 3000 --endpoint /dev/AMA0`
+
+
+For testing a http end-point of OpenEVSE WiFi gateway can be used e.g
+
+`nodejs app.js --port 3000 --endpoint http://192.168.0.43`
+
+or
+
+`nodejs app.js --port 3000 --endpoint http://openevse.local/`
 
 Then point your browser at http://localhost:3000/
+
+***
 
 Depending on your npm setup you may need to install the following:
 
