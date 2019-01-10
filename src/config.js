@@ -2,28 +2,33 @@
 
 "use strict";
 
-var fs = require("fs");
+const fs = require("fs");
+
+exports.path = "./config.json";
 
 exports.save = function(config)
 {
-  var data = JSON.stringify(config, null, 2);
+  return new Promise(function(resolve, reject)
+  {
+    var data = JSON.stringify(config, null, 2);
 
-  fs.writeFile("./config.json", data, function (err) {
-    if (err) {
-      console.log("There has been an error saving your configuration data.");
-      console.log(err.message);
-      return;
-    }
-    console.log("Configuration saved successfully.");
+    fs.writeFile(exports.path, data, function (err) {
+      if (err) {
+        reject(err);
+        return;
+      }
+      console.log("Configuration saved successfully.");
+      resolve();
+    });
   });
 };
 
 exports.load = function (defaults)
 {
   var config = defaults;
-  if(fs.existsSync("./config.json"))
+  if(fs.existsSync(exports.path))
   {
-    var data = fs.readFileSync("./config.json");
+    var data = fs.readFileSync(exports.path);
 
     try {
       config = Object.assign(defaults, JSON.parse(data));
