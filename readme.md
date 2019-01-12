@@ -2,10 +2,9 @@
 
 Node web app for OpenEVSE WiFi gateway, can be run on embeded Linux e.g Raspberry Pi or OrangePi connected to a openevse controller via serial.
 
-
 ## Requirements
 
-```
+``` shell
 sudo apt-get intall node nodejs npm
 ```
 
@@ -13,46 +12,52 @@ Tested with `npm V5.6.0` and nodejs `v9.5.0`.
 
 If a new version of nodejs is not available for your distribution you may need to update, [see nodejs install page](https://nodejs.org/en/download/package-manager/#debian-and-ubuntu-based-linux-distributions).
 
-
 ## Produciton
 
 Install NPM package:
 
-`npm install -g openevse_wifi`
+```shell
+npm install -g openevse_wifi
+```
 
-Run with:
+Run with, where `<endpoint>` is the serial port where the open_evse controller:
 
-`openevse_wifi`
-
+```shell
+openevse_wifi --endpoint <endpoint>
+```
 
 ## Development
 
 Install local version running from source:
 
-```
+```shell
 git clone <this-repo>
 npm install
-cd src
 ```
 
+Run using the following, where `<endpoint>` is the serial port where the open_evse controller
 
-Run using the following, where `<endpoint` is the serial port where the open_evse controller
-
-
-`nodejs app.js --port 3000 --endpoint <endpoint>`
+```shell
+npm start --port 3000 --endpoint <endpoint>
+```
 
 e.g
 
-`nodejs app.js --port 3000 --endpoint /dev/AMA0`
-
+```shell
+npm start -- --port 3000 --endpoint /dev/AMA0
+```
 
 For testing a http end-point of OpenEVSE WiFi gateway can be used e.g
 
-`nodejs app.js --port 3000 --endpoint http://192.168.0.43`
+```shell
+npm start -- --port 3000 --endpoint http://192.168.0.43
+```
 
 or
 
-`nodejs app.js --port 3000 --endpoint http://openevse.local/`
+```shell
+npm start -- --port 3000 --endpoint http://openevse.local/
+```
 
 Then point your browser at http://localhost:3000/
 
@@ -60,17 +65,20 @@ Then point your browser at http://localhost:3000/
 
 Depending on your npm setup you may need to install the following:
 
-```
+```shell
 npm install body-parser
 npm install express
 npm install
 ```
 
+***
+
+Note: the following is from the ESP8266 version, may not apply
 
 **Tip**
 The OpenEVSE WiFi HTML/JS/CSS can be 'compiled' without building the full firmware using the command:
 
-```
+```shell
 pio run -t buildfs
 ```
 
