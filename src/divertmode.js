@@ -5,6 +5,7 @@
 "use strict";
 
 const EventEmitter = require("events");
+const debug = require("debug")("openevse:wifi:divert");
 
 module.exports = class DivertMode extends EventEmitter {
   constructor(openevse) {
@@ -37,10 +38,12 @@ module.exports = class DivertMode extends EventEmitter {
       switch (value) {
       case this.NORMAL:
         // Restore the max charge current
+        debug("Mode changed to normal");
         this.openevse.current_capacity(() => { }, this.max_charge_current);
         break;
       case this.ECO:
         // Read the current charge current, assume this is the max set by the user
+        debug("Mode changed to eco");
         this.openevse.current_capacity((capacity) => {
           this.max_charge_current = capacity;
         });
@@ -65,7 +68,7 @@ module.exports = class DivertMode extends EventEmitter {
 
   set charge_rate(value) {
     var charge_rate = value;
-    console.log("charge_rate = " + charge_rate);
+    debug("charge_rate = " + charge_rate);
 
     // When chargine we don't want drop below the minimumm charge rate
     // This avoids undue stress on the relays
@@ -82,7 +85,7 @@ module.exports = class DivertMode extends EventEmitter {
         // Change the charge rate if needed
         if (current_charge_rate != charge_rate) {
           // Set charge rate
-          console.log("Setting new charge rate: " + charge_rate);
+          debug("Setting new charge rate: " + charge_rate);
           this.openevse.current_capacity(() => {
             this.emit("charge_rate", charge_rate);
             this.startCharge;
@@ -98,7 +101,7 @@ module.exports = class DivertMode extends EventEmitter {
     // If charge rate > min current and EVSE is sleeping then start charging
     if (this._state == this.openevse.STATE_SLEEPING) {
       this.openevse.status(() => {
-        console.log("Divert started charge");
+        debug("Divert started charge");
       }, "enable");
     }
   }
@@ -109,12 +112,12 @@ module.exports = class DivertMode extends EventEmitter {
     }
 
     var Igrid_ie = value / this._voltage;
-    console.log("Igrid_ie = " + Igrid_ie);
+    debug("Igrid_ie = " + Igrid_ie);
     this.openevse.charging_current_voltage((voltage, milliAmps) => {
       var amps = milliAmps / 1000.0;
-      console.log("amps = " + amps);
+      debug("amps = " + amps);
       Igrid_ie -= amps;
-      console.log("Igrid_ie = " + Igrid_ie);
+      debug("Igrid_ie = " + Igrid_ie);
 
       if (Igrid_ie < 0) {
         // Have excess power

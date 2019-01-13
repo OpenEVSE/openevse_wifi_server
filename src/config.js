@@ -3,6 +3,7 @@
 "use strict";
 
 const fs = require("fs");
+const debug = require("debug")("openevse:wifi:config");
 
 exports.path = "./config.json";
 
@@ -17,7 +18,7 @@ exports.save = function(config)
         reject(err);
         return;
       }
-      console.log("Configuration saved successfully.");
+      debug("Configuration saved successfully.");
       resolve();
     });
   });

@@ -1,5 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const debug = require("debug")("openevse:wifi:web");
 
 const app = express();
 const expressWs = require("express-ws")(app);
@@ -22,6 +23,7 @@ app.ws("/ws", function(ws) {
 });
 var ws = expressWs.getWss("/ws");
 ws.sendAll = function (data) {
+  debug("Sending "+JSON.stringify(data)+" to all");
   ws.clients.forEach(client => {
     client.send(JSON.stringify(data));
   });

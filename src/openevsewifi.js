@@ -10,6 +10,7 @@ const EmonCMS = require("emoncms");
 const OhmHour = require("ohmhour");
 const mqtt = require("mqtt");
 const EventEmitter = require("events");
+const debug = require("debug")("openevse:wifi");
 
 module.exports = class OpenEVSEWiFi extends EventEmitter
 {
@@ -346,7 +347,7 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
       });
 
       client.on("message", (topic, message) => {
-        console.log(topic + ": " + message.toString());
+        debug(topic + ": " + message.toString());
         if(topic.startsWith(this.config.mqtt.topic + "/rapi/in/")) {
           // TODO
         }
@@ -401,6 +402,7 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
   set config(options)
   {
     var modified;
+    debug(options);
     if(options.emoncms)
     {
       modified = false;
