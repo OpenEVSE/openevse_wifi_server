@@ -1,6 +1,6 @@
 {
   "name": "openevse_wifi",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "OpenEVSE WiFi server",
   "main": "src/app.js",
   "bin": {
