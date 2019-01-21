@@ -71,6 +71,24 @@ npm install express
 npm install
 ```
 
+## Debugging
+
+OpenEVSE WiFi uses the [debug]() library as does a number of the dependant modules. To enable debug you set the `DEBUG` variable to a filter indicating the modules you wish to receive debug from, eg;
+
+```shell
+export DEBUG=openevse*
+npm start
+```
+
+for Linux or
+
+```powershell
+$env:DEBUG="openevse*"
+npm start
+```
+
+for Powershell on Windows
+
 ***
 
 Note: the following is from the ESP8266 version, may not apply
