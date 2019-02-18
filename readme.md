@@ -26,6 +26,20 @@ Run with, where `<endpoint>` is the serial port where the open_evse controller:
 openevse_wifi --endpoint <endpoint>
 ```
 
+#### To Install on Raspbian Stretch 
+
+NPM must be updated since updated NPM package is no longer mentained for Stretch
+
+```
+curl -sL https://deb.nodesource.com/setup_10.x | sudo bash -
+sudo apt-get install -y nodejs
+sudo chown -R pi ~/.config/ 
+sudo chown -R pi ~/.npm
+sudo chown -R pi /usr/lib/node_modules/
+npm install -g openevse_wifi
+openevse_wifi --endpoint /dev/ttyUSB0
+```
+
 ## Development
 
 Install local version running from source:
