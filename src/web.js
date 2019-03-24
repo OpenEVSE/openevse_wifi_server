@@ -1,3 +1,5 @@
+/* jshint node: true, esversion: 6*/
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const debug = require("debug")("openevse:wifi:web");
@@ -71,7 +73,7 @@ app.get("/config", function (req, res) {
 });
 app.get("/status", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
-  res.json(data.status);
+  res.json(data.evse.status);
 });
 app.get("/update", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
@@ -86,7 +88,7 @@ app.get("/r", function (req, res) {
 
   var rapi = req.query.rapi;
 
-  data.rapi(rapi, function (data) {
+  data.evse.rapi(rapi, function (data) {
     var resp = { "cmd": rapi, "ret": data};
     res.json(resp);
   }).error(function () {
@@ -179,13 +181,13 @@ app.post("/apoff", function (req, res) {
 
 app.post("/divertmode", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
-  data.divert.mode = parseInt(req.body.divertmode);
+  data.evse.divert.mode = parseInt(req.body.divertmode);
   res.send("Divert Mode changed");
 });
 
 exports.start = function(evseApp, port) {
   data = evseApp;
-  data.on("status", (status) => {
+  data.evse.on("status", (status) => {
     ws.sendAll(status);
   });
   app.listen(port, () => console.log("OpenEVSE WiFi Simulator listening on port " + port + "!"));

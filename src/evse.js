@@ -204,6 +204,11 @@ module.exports = class emoncms extends base
 
     setTimeout(this.update.bind(this), this.uploadTime);
   }
+
+  rapi(cmd, callback) {
+    return this.evseConn.rawRequest(cmd, callback);
+  }
+
   get status() {
     if(this.evseConn) {
       this._status.comm_sent = this.evseConn.comm_sent;

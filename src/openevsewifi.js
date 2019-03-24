@@ -62,7 +62,7 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
     this.evse = new evse(endpoint);
     this.emoncms = new emoncms(this.evse);
     this.mqtt = new mqtt(this.evse);
-    this.ohmconnect = new ohmconnect(this.evse);
+    this.ohmconnect = new ohmconnect(this.evse, this.config.system);
 
     this.evse.on("status", (changedData) => {
       this.emit("status", changedData);
@@ -80,10 +80,6 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
     this.emoncms.connect(this.config.emoncms);
     this.mqtt.connect(this.config.mqtt);
     this.ohmconnect.connect(this.config.ohm);
-  }
-
-  rapi(cmd, callback) {
-    return this.evse.evseConn.rawRequest(cmd, callback);
   }
 
   get status() {

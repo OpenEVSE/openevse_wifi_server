@@ -78,10 +78,14 @@ module.exports = class extends EventEmitter
           this.evse.divert.mode = parseInt(message);
         }
         if(topic === this.config.grid_ie) {
-          this.evse.divert.grid_ie = parseFloat(message);
+          var grid_ie = parseFloat(message);
+          this.evse.divert.grid_ie = grid_ie;
+          this.evse.status = { grid_ie: grid_ie };
         }
         if(topic === this.config.solar) {
-          this.evse.divert.solar = parseFloat(message);
+          var solar = parseFloat(message);
+          this.evse.divert.solar = solar;
+          this.evse.status = { solar: solar };
         }
       });
       return client;
