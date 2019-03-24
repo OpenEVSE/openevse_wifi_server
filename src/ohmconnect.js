@@ -16,6 +16,7 @@ module.exports = class extends base
     this.enabled = false;
     this.key = "";
     this.inteterval = false;
+    this.ohmTime = 60 * 1000;
 
     this._status = {
       ohm_hour: "NotConnected",

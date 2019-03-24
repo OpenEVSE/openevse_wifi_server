@@ -62,7 +62,7 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
     this.evse = new evse(endpoint);
     this.emoncms = new emoncms(this.evse);
     this.mqtt = new mqtt(this.evse);
-    this.ohmconnect = new ohmconnect(this.evse, this.config.system);
+    this.ohmconnect = new ohmconnect(this.evse);
 
     this.evse.on("status", (changedData) => {
       this.emit("status", changedData);
@@ -205,7 +205,7 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
       }
       if(modified) {
         config.save(this._config);
-        this.ohmconnect.connect(this._config.ohmconnect);
+        this.ohmconnect.connect(this._config.ohm);
       }
     }
   }

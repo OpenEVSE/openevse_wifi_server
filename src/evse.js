@@ -60,7 +60,6 @@ module.exports = class emoncms extends base
     // Time between sending a command to the OpenEVSE
     this.updateTime = 200;
     this.uploadTime = 20 * 1000;
-    this.ohmTime = 60 * 1000;
 
     // List of items to update on calling update on startup
     this.initList = [
