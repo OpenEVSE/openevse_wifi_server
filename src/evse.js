@@ -214,6 +214,7 @@ module.exports = class emoncms extends base
       this._status.comm_sent = this.evseConn.comm_sent;
       this._status.comm_success = this.evseConn.comm_success;
     }
+    this._status.divert_update = this.divert.feed_age;
     return this._status;
   }
   set status(newStatus) {

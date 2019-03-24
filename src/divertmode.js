@@ -27,6 +27,8 @@ module.exports = class DivertMode extends EventEmitter {
 
     this.min_charge_current = 6;
     this.max_charge_current = 32;
+
+    this.feed_last_update_time = new Date().getTime();
   }
 
   get mode() {
@@ -106,7 +108,12 @@ module.exports = class DivertMode extends EventEmitter {
     }
   }
 
+  get feed_age() {
+    return Math.ceil((new Date().getTime() - this.feed_last_update_time) / 1000);
+  }
+
   set grid_ie(value) {
+    this.feed_last_update_time = new Date().getTime();
     if (this.ECO !== this.mode) {
       return;
     }
@@ -131,6 +138,7 @@ module.exports = class DivertMode extends EventEmitter {
   }
 
   set solar(value) {
+    this.feed_last_update_time = new Date().getTime();
     if (this.ECO !== this.mode) {
       return;
     }

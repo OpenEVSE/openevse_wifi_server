@@ -80,12 +80,12 @@ module.exports = class extends EventEmitter
         if(topic === this.config.grid_ie) {
           var grid_ie = parseFloat(message);
           this.evse.divert.grid_ie = grid_ie;
-          this.evse.status = { grid_ie: grid_ie };
+          this.evse.status = { grid_ie: grid_ie, divert_update: 0 };
         }
         if(topic === this.config.solar) {
           var solar = parseFloat(message);
           this.evse.divert.solar = solar;
-          this.evse.status = { solar: solar };
+          this.evse.status = { solar: solar, divert_update: 0 };
         }
       });
       return client;
