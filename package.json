@@ -43,12 +43,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jeremypoulter/openevse_wifi_server.git"
+    "url": "git+https://github.com/openevse/openevse_wifi_server.git"
   },
   "bugs": {
-    "url": "https://github.com/jeremypoulter/openevse_wifi_server/issues"
+    "url": "https://github.com/openevse/openevse_wifi_server/issues"
   },
-  "homepage": "https://github.com/jeremypoulter/openevse_wifi_server#readme",
+  "homepage": "https://github.com/openevse/openevse_wifi_server#readme",
   "keywords": [
     "evse"
   ]
