@@ -151,6 +151,7 @@ module.exports = class emoncms extends base
     });
 
     this.runList(this.initList, function () {
+      this.emit("boot", this.status);
       this.update();
     }.bind(this));
 
