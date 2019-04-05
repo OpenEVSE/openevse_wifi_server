@@ -13,4 +13,4 @@ COPY . /app
 RUN npm install
 
 USER node
-ENTRYPOINT node /app/src/app.js --port $PORT
+ENTRYPOINT [ "/app/entrypoint.sh" ]
