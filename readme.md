@@ -51,26 +51,22 @@ npm install
 
 Run using the following, where `<endpoint>` is the serial port where the open_evse controller
 
-```shell
-npm start --port 3000 --endpoint <endpoint>
+```shellport 3000 --endpoint <endpoint>
 ```
 
 e.g
 
-```shell
-npm start -- --port 3000 --endpoint /dev/AMA0
+```shell --port 3000 --endpoint /dev/AMA0
 ```
 
 For testing a http end-point of OpenEVSE WiFi gateway can be used e.g
 
-```shell
-npm start -- --port 3000 --endpoint http://192.168.0.43
+```shell --port 3000 --endpoint http://192.168.0.43
 ```
 
 or
 
-```shell
-npm start -- --port 3000 --endpoint http://openevse.local/
+```shell --port 3000 --endpoint http://openevse.local/
 ```
 
 Then point your browser at http://localhost:3000/
@@ -102,6 +98,44 @@ npm start
 ```
 
 for Powershell on Windows
+
+## Docker
+
+### Building
+
+```shell
+docker build --tag openevse .
+```
+
+### Run with default config
+
+```shell
+docker run --rm -it --name openevse -p 3000:3000/tcp openevse
+```
+
+### Run with debug enabled
+
+```shell
+docker run --rm -it --env DEBUG=openevse* --name openevse -p 3000:3000/tcp openevse
+```
+
+### Specify endpoint serial endpoint
+
+```shell
+docker run --rm -it --env DEBUG=openevse* --name openevse -p 3000:3000/tcp --device=/dev/ttyUSB0 openevse --endpoint /dev/ttyUSB0
+```
+
+Note: You need to expose the serial port device to docker using the `--device` option.
+
+### Specify endpoint HTTP endpoint
+
+```shell
+docker run --rm -it --env DEBUG=openevse* --name openevse -p 3000:3000/tcp --dns 172.16.0.1 openevse --endpoint http://openevse.lan/r
+```
+
+Note: Docker by default does not use the same DNS as the host machine so you need to use the `--dns` option to use your local DNS server (probably your router).
+
+TODO mDNS setup.
 
 ***
 

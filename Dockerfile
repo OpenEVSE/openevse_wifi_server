@@ -13,4 +13,4 @@ COPY . /app
 RUN npm install
 
 USER node
-CMD [ "npm", "start" ]
+ENTRYPOINT node /app/src/app.js --port $PORT
