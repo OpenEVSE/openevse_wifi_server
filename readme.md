@@ -30,7 +30,7 @@ openevse_wifi --endpoint <endpoint>
 
 NPM must be updated since updated NPM package is no longer mentained for Stretch
 
-```
+```shell
 curl -sL https://deb.nodesource.com/setup_10.x | sudo bash -
 sudo apt-get install -y nodejs
 sudo chown -R pi ~/.config/ 
@@ -51,22 +51,26 @@ npm install
 
 Run using the following, where `<endpoint>` is the serial port where the open_evse controller
 
-```shellport 3000 --endpoint <endpoint>
+```shell
+npm start -- --port 3000 --endpoint <endpoint>
 ```
 
 e.g
 
-```shell --port 3000 --endpoint /dev/AMA0
+```shell
+npm start -- --port 3000 --endpoint /dev/AMA0
 ```
 
 For testing a http end-point of OpenEVSE WiFi gateway can be used e.g
 
-```shell --port 3000 --endpoint http://192.168.0.43
+```shell
+npm start -- --port 3000 --endpoint http://192.168.0.43
 ```
 
 or
 
-```shell --port 3000 --endpoint http://openevse.local/
+```shell
+npm start -- --port 3000 --endpoint http://openevse.local/
 ```
 
 Then point your browser at http://localhost:3000/
