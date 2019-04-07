@@ -34,7 +34,7 @@ module.exports = class DivertMode extends EventEmitter {
   }
 
   set mode(value) {
-    if (this._mode != value) {
+    if (this._mode !== value) {
       switch (value) {
       case this.NORMAL:
         // Restore the max charge current
@@ -72,7 +72,7 @@ module.exports = class DivertMode extends EventEmitter {
 
     // When chargine we don't want drop below the minimumm charge rate
     // This avoids undue stress on the relays
-    if (this._state != this.openevse.STATE_SLEEPING) {
+    if (this._state !== this.openevse.STATE_SLEEPING) {
       charge_rate = Math.max(charge_rate, this.min_charge_current);
     }
 
@@ -83,12 +83,12 @@ module.exports = class DivertMode extends EventEmitter {
       // Read the current charge rate
       this.openevse.current_capacity((current_charge_rate) => {
         // Change the charge rate if needed
-        if (current_charge_rate != charge_rate) {
+        if (current_charge_rate !== charge_rate) {
           // Set charge rate
           debug("Setting new charge rate: " + charge_rate);
           this.openevse.current_capacity(() => {
             this.emit("charge_rate", charge_rate);
-            this.startCharge;
+            this.startCharge();
           }, charge_rate, true);
         } else {
           this.startCharge();
@@ -99,7 +99,7 @@ module.exports = class DivertMode extends EventEmitter {
 
   startCharge() {
     // If charge rate > min current and EVSE is sleeping then start charging
-    if (this._state == this.openevse.STATE_SLEEPING) {
+    if (this._state === this.openevse.STATE_SLEEPING) {
       this.openevse.status(() => {
         debug("Divert started charge");
       }, "enable");
