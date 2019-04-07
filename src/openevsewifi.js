@@ -66,10 +66,10 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
       },
     };
     this._status = {
-      mode: "STA",
-      wifi_client_connected: 1,
-      srssi: -50,
-      ipaddress: "172.16.0.191",
+      mode: "NA",
+      wifi_client_connected: 0,
+      srssi: 0,
+      ipaddress: "",
       emoncms_connected: 0,
       packets_sent: 0,
       packets_success: 0,
