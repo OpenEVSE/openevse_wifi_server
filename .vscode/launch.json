@@ -14,8 +14,41 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Launch Server",
-      "program": "${workspaceFolder}/src/app.js"
+      "name": "Launch OpenEVSE (simulator)",
+      "program": "${workspaceFolder}/src/app.js",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "env": {
+        "DEBUG": "openevse*"
+      }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch OpenEVSE (openevse.lan)",
+      "program": "${workspaceFolder}/src/app.js",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "env": {
+        "DEBUG": "openevse*"
+      },
+      "args": [
+        "--endpoint", "http://openevse.lan/r"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch OpenEVSE (serial)",
+      "program": "${workspaceFolder}/src/app.js",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "env": {
+        "DEBUG": "openevse*"
+      },
+      "args": [
+        "--endpoint", "/dev/ttyUSB0"
+      ]
     }
   ]
 }
