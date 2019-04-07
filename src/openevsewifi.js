@@ -9,6 +9,7 @@ const mqtt = require("./mqtt");
 const ohmconnect = require("./ohmconnect");
 
 const EventEmitter = require("events");
+const network = require("network");
 const debug = require("debug")("openevse:wifi");
 
 module.exports = class OpenEVSEWiFi extends EventEmitter
@@ -52,6 +53,7 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
       wifi_client_connected: 0,
       srssi: 0,
       ipaddress: "",
+      network_manager: "external",
     };
   }
 
@@ -82,6 +84,26 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
       this.mqtt.connect(this.config.mqtt);
       this.ohmconnect.connect(this.config.ohm);
     });
+
+    network.get_active_interface((err, obj) => {
+      if(err) {
+        debug("Error getting IP address info", err);
+        return;
+      }
+
+      this._status.ipaddress = obj.ip_address;
+      switch(obj.type)
+      {
+      case "Wired":
+        this._status.mode = "Wired";
+        this._status.wifi_client_connected = 0;
+        break;
+      case "Wireless":
+        this._status.mode = "STA";
+        this._status.wifi_client_connected = 1;
+        break;
+      }
+    });
   }
 
   get status() {
@@ -92,6 +114,7 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
       wifi_client_connected: this._status.wifi_client_connected,
       srssi: this._status.srssi,
       ipaddress: this._status.ipaddress,
+      network_manager: this._status.network_manager,
       emoncms_connected: this.emoncms.connected,
       packets_sent: this.emoncms.packets_sent,
       packets_success: this.emoncms.packets_success,
