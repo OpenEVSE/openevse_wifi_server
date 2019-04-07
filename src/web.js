@@ -73,7 +73,7 @@ app.get("/config", function (req, res) {
 });
 app.get("/status", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
-  res.json(data.evse.status);
+  res.json(data.status);
 });
 app.get("/update", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");

@@ -88,10 +88,10 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
     var mem = process.memoryUsage();
 
     return {
-      mode: "STA",
-      wifi_client_connected: 0,
-      srssi: -50,
-      ipaddress: "172.16.0.191",
+      mode: this._status.mode,
+      wifi_client_connected: this._status.wifi_client_connected,
+      srssi: this._status.srssi,
+      ipaddress: this._status.ipaddress,
       emoncms_connected: this.emoncms.connected,
       packets_sent: this.emoncms.packets_sent,
       packets_success: this.emoncms.packets_success,
