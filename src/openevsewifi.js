@@ -8,11 +8,11 @@ const emoncms = require("./emoncms");
 const mqtt = require("./mqtt");
 const ohmconnect = require("./ohmconnect");
 
-const EventEmitter = require("events");
+const base = require("./base");
 const network = require("network");
 const debug = require("debug")("openevse:wifi");
 
-module.exports = class OpenEVSEWiFi extends EventEmitter
+module.exports = class OpenEVSEWiFi extends base
 {
   constructor()
   {
@@ -83,6 +83,7 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
       this.emoncms.connect(this.config.emoncms);
       this.mqtt.connect(this.config.mqtt);
       this.ohmconnect.connect(this.config.ohm);
+      this.emit("boot");
     });
 
     network.get_active_interface((err, obj) => {
@@ -91,18 +92,20 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
         return;
       }
 
-      this._status.ipaddress = obj.ip_address;
+      var newStatus = { ipaddress: obj.ip_address };
       switch(obj.type)
       {
       case "Wired":
-        this._status.mode = "Wired";
-        this._status.wifi_client_connected = 0;
+        newStatus.mode = "Wired";
+        newStatus.wifi_client_connected = 0;
         break;
       case "Wireless":
-        this._status.mode = "STA";
-        this._status.wifi_client_connected = 1;
+        newStatus.mode = "STA";
+        newStatus.wifi_client_connected = 1;
         break;
       }
+
+      this.status = newStatus;
     });
   }
 
@@ -142,6 +145,9 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
       charge_rate: this.evse.status.charge_rate,
       divert_update: this.evse.status.divert_update
     };
+  }
+  set status(newStatus) {
+    super.status = newStatus;
   }
 
   get config() {
