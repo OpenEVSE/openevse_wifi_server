@@ -12,7 +12,7 @@ Tested with `npm V5.6.0` and nodejs `v9.5.0`.
 
 If a new version of nodejs is not available for your distribution you may need to update, [see nodejs install page](https://nodejs.org/en/download/package-manager/#debian-and-ubuntu-based-linux-distributions).
 
-## Produciton
+## Production
 
 Install NPM package:
 
