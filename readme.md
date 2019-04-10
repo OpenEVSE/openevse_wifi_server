@@ -5,7 +5,7 @@ Node web app for OpenEVSE WiFi gateway, can be run on embeded Linux e.g Raspberr
 ## Requirements
 
 ``` shell
-sudo apt-get intall node nodejs npm
+sudo apt-get install node nodejs npm
 ```
 
 Tested with `npm V5.6.0` and nodejs `v9.5.0`.
