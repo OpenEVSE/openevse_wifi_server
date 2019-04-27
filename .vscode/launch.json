@@ -49,6 +49,20 @@
       "args": [
         "--endpoint", "/dev/ttyUSB0"
       ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch OpenEVSE (LCD RAPI)",
+      "program": "${workspaceFolder}/src/app.js",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "env": {
+        "DEBUG": "openevse*"
+      },
+      "args": [
+        "--lcd", "rapi"
+      ]
     }
   ]
 }
