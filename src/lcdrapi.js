@@ -14,6 +14,7 @@ module.exports = class
     this.messages = [];
     this.lcdClaimed = false;
     this.nextExentTimer = false;
+    this.processing = false;
   }
 
   display(message, x, y, options)
@@ -54,10 +55,16 @@ module.exports = class
   process()
   {
     this.nextExentTimer = false;
+    if(this.processing) {
+      return;
+    }
+
+    this.processing = true;
 
     if(this.messages.length > 0)
     {
       var msg = this.messages.shift();
+      debug("Display messaging", msg);
 
       if(false === this.lcdClaimed) {
         this.openevse.lcd_claim(() => {
@@ -69,6 +76,7 @@ module.exports = class
         if(msg.options.clear) {
           this.clearEndOfLine(msg.x + msg.message.length, msg.y, () => {
             var nextTime = msg.options.time ? msg.options.time : 0;
+            this.processing = false;
             this.nextExentTimer = setTimeout(this.process.bind(this), nextTime);
           });
         }
@@ -76,8 +84,10 @@ module.exports = class
     }
     else
     {
+      debug("No messages left, releasing display");
       this.openevse.lcd_claim(() => {
         this.lcdClaimed = false;
+        this.processing = false;
       }, false);
     }
   }
