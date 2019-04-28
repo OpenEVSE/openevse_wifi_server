@@ -58,7 +58,7 @@
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "env": {
-        "DEBUG": "openevse*"
+        "DEBUG": "openevse,openevse:lcd*"
       },
       "args": [
         "--lcd", "rapi"
