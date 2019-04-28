@@ -15,7 +15,7 @@ module.exports = class
     // TODO extend to support different LCD drivers, eg I2C directly
     if("rapi" === driver.toLowerCase()) {
       const lcdDriver = require("./lcdrapi");
-      this.lcd = new lcdDriver();
+      this.lcd = new lcdDriver(app.evse.evseConn);
     } else {
       throw "Unknown LCD driver "+driver;
     }
@@ -28,7 +28,7 @@ module.exports = class
     app.on("status", (status) => {
       if(status.hasOwnProperty("ipaddress")) {
         this.lcd.display("IP Address:", 0, 0, { clear: true });
-        this.lcd.display(status.ipaddress, 0, 1, { clear: true, time: 5 * 1000 });  
+        this.lcd.display(status.ipaddress, 0, 1, { clear: true, time: 5 * 1000 });
       }
     });
   }
