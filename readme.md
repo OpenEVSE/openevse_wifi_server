@@ -75,6 +75,20 @@ npm start -- --port 3000 --endpoint http://openevse.local/
 
 Then point your browser at http://localhost:3000/
 
+### Linking to GUI
+
+Quite often you will need to be developing the GUI (or other Node.JS modules) at the same time. This can be done by using [npm link](https://docs.npmjs.com/cli/link.html).
+
+Assuming [openevse_wifi_gui](https://github.com/OpenEVSE/openevse_wifi_gui) is checked out in the same dir as this repo:
+
+```shell
+cd openevse_wifi_gui
+npm link
+cd ../openevse_wifi_server
+npm install
+npm link openevse_wifi_gui
+```
+
 ***
 
 Depending on your npm setup you may need to install the following:
