@@ -1,3 +1,5 @@
+/* jshint node: true, esversion: 6*/
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const debug = require("debug")("openevse:wifi:web");
@@ -36,19 +38,19 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.get("/config", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
   res.json({
-    firmware: data.info.firmware,
-    protocol: data.info.protocol,
-    espflash: data.info.espflash,
-    version: data.info.version,
-    diodet: data.openevse.diodet ? 0 : 1,
-    gfcit: data.openevse.gfcit ? 0 : 1,
-    groundt: data.openevse.groundt ? 0 : 1,
-    relayt: data.openevse.relayt ? 0 : 1,
-    ventt: data.openevse.ventt ? 0 : 1,
-    tempt: data.openevse.tempt ? 0 : 1,
-    service: data.openevse.service,
-    scale: data.openevse.scale,
-    offset: data.openevse.offset,
+    firmware: data.evse.info.firmware,
+    protocol: data.evse.info.protocol,
+    espflash: data.evse.info.espflash,
+    version: data.evse.info.version,
+    diodet: data.evse.openevse.diodet ? 0 : 1,
+    gfcit: data.evse.openevse.gfcit ? 0 : 1,
+    groundt: data.evse.openevse.groundt ? 0 : 1,
+    relayt: data.evse.openevse.relayt ? 0 : 1,
+    ventt: data.evse.openevse.ventt ? 0 : 1,
+    tempt: data.evse.openevse.tempt ? 0 : 1,
+    service: data.evse.openevse.service,
+    scale: data.evse.openevse.scale,
+    offset: data.evse.openevse.offset,
     ssid: data.config.wifi.ssid,
     pass: data.config.wifi.pass ? DUMMY_PASSWORD : "",
     emoncms_enabled: data.config.emoncms.enabled,
@@ -86,7 +88,7 @@ app.get("/r", function (req, res) {
 
   var rapi = req.query.rapi;
 
-  data.rapi(rapi, function (data) {
+  data.evse.rapi(rapi, function (data) {
     var resp = { "cmd": rapi, "ret": data};
     res.json(resp);
   }).error(function () {
@@ -179,7 +181,7 @@ app.post("/apoff", function (req, res) {
 
 app.post("/divertmode", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
-  data.divert.mode = parseInt(req.body.divertmode);
+  data.evse.divert.mode = parseInt(req.body.divertmode);
   res.send("Divert Mode changed");
 });
 
@@ -190,7 +192,7 @@ app.get("/emoncms/describe", function (req, res) {
 
 exports.start = function(evseApp, port) {
   data = evseApp;
-  data.on("status", (status) => {
+  data.evse.on("status", (status) => {
     ws.sendAll(status);
   });
   app.listen(port, () => console.log("OpenEVSE WiFi Simulator listening on port " + port + "!"));
