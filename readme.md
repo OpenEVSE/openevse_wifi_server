@@ -5,14 +5,14 @@ Node web app for OpenEVSE WiFi gateway, can be run on embeded Linux e.g Raspberr
 ## Requirements
 
 ``` shell
-sudo apt-get intall node nodejs npm
+sudo apt-get install node nodejs npm
 ```
 
 Tested with `npm V5.6.0` and nodejs `v9.5.0`.
 
 If a new version of nodejs is not available for your distribution you may need to update, [see nodejs install page](https://nodejs.org/en/download/package-manager/#debian-and-ubuntu-based-linux-distributions).
 
-## Produciton
+## Production
 
 Install NPM package:
 
@@ -30,7 +30,7 @@ openevse_wifi --endpoint <endpoint>
 
 NPM must be updated since updated NPM package is no longer mentained for Stretch
 
-```
+```shell
 curl -sL https://deb.nodesource.com/setup_10.x | sudo bash -
 sudo apt-get install -y nodejs
 sudo chown -R pi ~/.config/ 
@@ -52,7 +52,7 @@ npm install
 Run using the following, where `<endpoint>` is the serial port where the open_evse controller
 
 ```shell
-npm start --port 3000 --endpoint <endpoint>
+npm start -- --port 3000 --endpoint <endpoint>
 ```
 
 e.g
@@ -74,6 +74,20 @@ npm start -- --port 3000 --endpoint http://openevse.local/
 ```
 
 Then point your browser at http://localhost:3000/
+
+### Linking to GUI
+
+Quite often you will need to be developing the GUI (or other Node.JS modules) at the same time. This can be done by using [npm link](https://docs.npmjs.com/cli/link.html).
+
+Assuming [openevse_wifi_gui](https://github.com/OpenEVSE/openevse_wifi_gui) is checked out in the same dir as this repo:
+
+```shell
+cd openevse_wifi_gui
+npm link
+cd ../openevse_wifi_server
+npm install
+npm link openevse_wifi_gui
+```
 
 ***
 
@@ -102,6 +116,44 @@ npm start
 ```
 
 for Powershell on Windows
+
+## Docker
+
+### Building
+
+```shell
+docker build --tag openevse .
+```
+
+### Run with default config
+
+```shell
+docker run --rm -it --name openevse -p 3000:3000/tcp openevse
+```
+
+### Run with debug enabled
+
+```shell
+docker run --rm -it --env DEBUG=openevse* --name openevse -p 3000:3000/tcp openevse
+```
+
+### Specify endpoint serial endpoint
+
+```shell
+docker run --rm -it --env DEBUG=openevse* --name openevse -p 3000:3000/tcp --device=/dev/ttyUSB0 openevse --endpoint /dev/ttyUSB0
+```
+
+Note: You need to expose the serial port device to docker using the `--device` option.
+
+### Specify endpoint HTTP endpoint
+
+```shell
+docker run --rm -it --env DEBUG=openevse* --name openevse -p 3000:3000/tcp --dns 172.16.0.1 openevse --endpoint http://openevse.lan/r
+```
+
+Note: Docker by default does not use the same DNS as the host machine so you need to use the `--dns` option to use your local DNS server (probably your router).
+
+TODO mDNS setup.
 
 ***
 

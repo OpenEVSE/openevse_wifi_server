@@ -187,6 +187,11 @@ app.post("/divertmode", function (req, res) {
   res.send("Divert Mode changed");
 });
 
+app.get("/emoncms/describe", function (req, res) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.send("openevse");
+});
+
 exports.start = function(evseApp, port) {
   data = evseApp;
   data.evse.on("status", (status) => {

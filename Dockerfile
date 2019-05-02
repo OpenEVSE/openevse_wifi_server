@@ -13,4 +13,4 @@ COPY . /app
 RUN npm install
 
 USER node
-CMD [ "npm", "start" ]
+ENTRYPOINT [ "/app/entrypoint.sh" ]
