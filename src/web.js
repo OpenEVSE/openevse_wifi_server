@@ -1,5 +1,7 @@
 /* jshint node: true, esversion: 6*/
 
+"use strict";
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const debug = require("debug")("openevse:wifi:web");

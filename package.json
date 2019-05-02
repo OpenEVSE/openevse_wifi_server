@@ -25,6 +25,7 @@
     "express-ws": "^4.0.0",
     "minimist": "^1.2.0",
     "mqtt": "^2.18.0",
+    "network": "^0.4.1",
     "ohmhour": "^1.0.0",
     "openevse": "^1.0.1",
     "openevse_wifi_gui": "^1.0.0",

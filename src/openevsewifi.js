@@ -8,10 +8,11 @@ const emoncms = require("./emoncms");
 const mqtt = require("./mqtt");
 const ohmconnect = require("./ohmconnect");
 
-const EventEmitter = require("events");
+const base = require("./base");
+const network = require("network");
 const debug = require("debug")("openevse:wifi");
 
-module.exports = class OpenEVSEWiFi extends EventEmitter
+module.exports = class OpenEVSEWiFi extends base
 {
   constructor()
   {
@@ -48,10 +49,11 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
       },
     };
     this._status = {
-      mode: "STA",
-      wifi_client_connected: 1,
-      srssi: -50,
-      ipaddress: "172.16.0.191"
+      mode: "NA",
+      wifi_client_connected: 0,
+      srssi: 0,
+      ipaddress: "",
+      network_manager: "external",
     };
   }
 
@@ -81,6 +83,29 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
       this.emoncms.connect(this.config.emoncms);
       this.mqtt.connect(this.config.mqtt);
       this.ohmconnect.connect(this.config.ohm);
+      this.emit("boot");
+    });
+
+    network.get_active_interface((err, obj) => {
+      if(err) {
+        debug("Error getting IP address info", err);
+        return;
+      }
+
+      var newStatus = { ipaddress: obj.ip_address };
+      switch(obj.type)
+      {
+      case "Wired":
+        newStatus.mode = "Wired";
+        newStatus.wifi_client_connected = 0;
+        break;
+      case "Wireless":
+        newStatus.mode = "STA";
+        newStatus.wifi_client_connected = 1;
+        break;
+      }
+
+      this.status = newStatus;
     });
   }
 
@@ -92,6 +117,7 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
       wifi_client_connected: this._status.wifi_client_connected,
       srssi: this._status.srssi,
       ipaddress: this._status.ipaddress,
+      network_manager: this._status.network_manager,
       emoncms_connected: this.emoncms.connected,
       packets_sent: this.emoncms.packets_sent,
       packets_success: this.emoncms.packets_success,
@@ -119,6 +145,9 @@ module.exports = class OpenEVSEWiFi extends EventEmitter
       charge_rate: this.evse.status.charge_rate,
       divert_update: this.evse.status.divert_update
     };
+  }
+  set status(newStatus) {
+    super.status = newStatus;
   }
 
   get config() {
