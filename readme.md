@@ -61,16 +61,16 @@ e.g
 npm start -- --port 3000 --endpoint /dev/AMA0
 ```
 
-For testing a http end-point of OpenEVSE WiFi gateway can be used e.g
+For testing a http RAPI end-point of OpenEVSE WiFi gateway can be used e.g
 
 ```shell
-npm start -- --port 3000 --endpoint http://192.168.0.43
+npm start -- --port 3000 --endpoint http://192.168.0.43/r
 ```
 
 or
 
 ```shell
-npm start -- --port 3000 --endpoint http://openevse.local/
+npm start -- --port 3000 --endpoint http://openevse.local/r
 ```
 
 Then point your browser at http://localhost:3000/
