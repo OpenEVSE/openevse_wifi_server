@@ -192,10 +192,22 @@ app.get("/emoncms/describe", function (req, res) {
   res.send("openevse");
 });
 
-exports.start = function(evseApp, port) {
+exports.start = function(evseApp, port, cert = false, key = false) {
   data = evseApp;
   data.evse.on("status", (status) => {
     ws.sendAll(status);
   });
-  app.listen(port, () => console.log("OpenEVSE WiFi Simulator listening on port " + port + "!"));
+
+  if(cert && key)
+  {
+    const fs = require("fs");
+    const https = require("https");
+
+    https.createServer({
+      key: fs.readFileSync(key),
+      cert: fs.readFileSync(cert)
+    }, app).listen(port, () => console.log("OpenEVSE WiFi Simulator listening on port " + port + "!"));
+  } else {
+    app.listen(port, () => console.log("OpenEVSE WiFi Simulator listening on port " + port + "!"));
+  }
 };

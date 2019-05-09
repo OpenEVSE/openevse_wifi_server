@@ -63,6 +63,21 @@
       "args": [
         "--lcd", "rapi"
       ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch OpenEVSE (HTTPS)",
+      "program": "${workspaceFolder}/src/app.js",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "env": {
+        "DEBUG": "openevse*"
+      },
+      "args": [
+        "--cert", "server.cert",
+        "--key", "server.key"
+      ]
     }
   ]
 }

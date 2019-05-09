@@ -79,5 +79,9 @@ ubuntu-xenial-16.04-cloudimg-console.log
 .vscode/.browse.c_cpp.db*
 .vs
 
+# local config files
+.env
 config.json
 test.json
+server.cert
+server.key

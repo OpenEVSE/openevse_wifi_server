@@ -18,7 +18,9 @@ let args = minimist(process.argv.slice(2), {
     version: false,
     port: 3000,
     endpoint: "simulator",
-    lcd: false
+    lcd: false,
+    cert: false,
+    key: false
   },
 });
 
@@ -35,7 +37,7 @@ if(args.version) {
 }
 
 app.start(args.endpoint);
-web.start(app, args.port);
+web.start(app, args.port, args.cert, args.key);
 
 if(args.lcd)
 {
