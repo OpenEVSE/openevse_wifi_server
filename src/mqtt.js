@@ -46,7 +46,7 @@ module.exports = class extends base
 
   connect(config)
   {
-    this.config = config;
+    this.config = Object.assign(this.config, config);
     debug(this.config);
 
     this.status = {

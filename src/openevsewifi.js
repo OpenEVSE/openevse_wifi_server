@@ -23,33 +23,10 @@ module.exports = class OpenEVSEWiFi extends base
         ssid: "demo",
         pass: ""
       },
-      emoncms: {
-        enabled: false,
-        server: "https://data.openevse.com/emoncms",
-        node: "openevse",
-        apikey: "",
-        fingerprint: ""
-      },
-      mqtt: {
-        enabled: false,
-        protocol: "mqtt",
-        server: "emonpi.local",
-        port: 1883,
-        reject_unauthorized: true,
-        topic: "openevse",
-        user: "emonpi",
-        pass: "emonpimqtt2016",
-        solar: "",
-        grid_ie: ""
-      },
       www: {
         username: "",
         password: ""
-      },
-      ohm: {
-        enabled: false,
-        key: ""
-      },
+      }
     };
     this._status = {
       mode: "NA",
@@ -62,12 +39,14 @@ module.exports = class OpenEVSEWiFi extends base
 
   start(endpoint)
   {
-    this._config = config.load(this._config);
-
     this.evse = new evse(endpoint);
     this.emoncms = new emoncms(this.evse);
     this.mqtt = new mqtt(this.evse);
     this.ohmconnect = new ohmconnect(this.evse);
+
+    var options = config.load(this.config);
+    this._config.wifi = Object.assign(this._config.wifi, options.wifi);
+    this._config.www = Object.assign(this._config.www, options.www);
 
     this.evse.on("status", (changedData) => {
       this.emit("status", changedData);
@@ -83,9 +62,9 @@ module.exports = class OpenEVSEWiFi extends base
     });
 
     this.evse.on("boot", () => {
-      this.emoncms.connect(this.config.emoncms);
-      this.mqtt.connect(this.config.mqtt);
-      this.ohmconnect.connect(this.config.ohm);
+      this.emoncms.connect(options.emoncms);
+      this.mqtt.connect(options.mqtt);
+      this.ohmconnect.connect(options.ohm);
       this.emit("boot");
     });
 
@@ -152,7 +131,16 @@ module.exports = class OpenEVSEWiFi extends base
   }
 
   get config() {
-    return this._config;
+    return {
+      wifi: this._config.wifi,
+      www: this._config.www,
+      emoncms: this.emoncms.config,
+      mqtt: this.mqtt.config,
+      ohm: {
+        enabled: this.ohmconnect.enabled,
+        key: this.ohmconnect.key
+      }
+    };
   }
 
   set config(options)
