@@ -1,3 +1,5 @@
+/* jshint node: true, esversion: 6*/
+
 "use strict";
 
 var expect = require("chai").expect;
