@@ -4,10 +4,10 @@
 
 const mqtt = require("mqtt");
 
-const EventEmitter = require("events");
+const base = require("./base");
 const debug = require("debug")("openevse:mqtt");
 
-module.exports = class extends EventEmitter
+module.exports = class extends base
 {
   constructor(evse)
   {
@@ -16,7 +16,7 @@ module.exports = class extends EventEmitter
     this.client = false;
 
     this._status = {
-      mqtt_connected: 0
+      connected: 0
     };
 
     this.config = {
@@ -37,9 +37,11 @@ module.exports = class extends EventEmitter
     });
 
     this.evse.on("data", (data) => {
-      this.publish(data);
+      // Only need freeram from this, all the rest is evented via status updates
+      this.publish({
+        freeram: data.freeram
+      });
     });
-
   }
 
   connect(config)
@@ -48,7 +50,7 @@ module.exports = class extends EventEmitter
     debug(this.config);
 
     this.status = {
-      mqtt_connected: 0
+      connected: 0
     };
     if(this.config.enabled)
     {
@@ -63,7 +65,7 @@ module.exports = class extends EventEmitter
       var client = mqtt.connect(this.config.protocol+"://"+this.config.server+":"+this.config.port, opts);
       client.on("connect", () =>
       {
-        this.status = { mqtt_connected: 1 };
+        this.status = { connected: 1 };
         client.subscribe(this.config.topic + "/rapi/in/#");
         client.subscribe(this.config.topic + "/divertmode/set");
         if(this.config.grid_ie) {
@@ -104,7 +106,7 @@ module.exports = class extends EventEmitter
   }
 
   publish(data) {
-    if (this.config.enabled && this.status.mqtt_connected) {
+    if (this.config.enabled && this.status.connected) {
       for (var name in data) {
         if (data.hasOwnProperty(name)) {
           var topic = this.config.topic + "/" + name;

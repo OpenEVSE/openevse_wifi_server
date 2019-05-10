@@ -113,21 +113,19 @@ module.exports = class OpenEVSEWiFi extends base
   }
 
   get status() {
-    var mem = process.memoryUsage();
-
     return {
       mode: this._status.mode,
       wifi_client_connected: this._status.wifi_client_connected,
       srssi: this._status.srssi,
       ipaddress: this._status.ipaddress,
       network_manager: this._status.network_manager,
-      emoncms_connected: this.emoncms.connected,
+      emoncms_connected: this.emoncms.status.connected,
       packets_sent: this.emoncms.packets_sent,
       packets_success: this.emoncms.packets_success,
       mqtt_connected: this.mqtt.status.connected,
       ohm_hour: this.ohmconnect.status.ohm_hour,
       ohm_started_charge: this.ohmconnect.status.ohm_started_charge,
-      free_heap: mem.heapTotal - mem.heapUsed,
+      free_heap: this.evse.status.free_heap,
       comm_sent: this.evse.status.comm_sent,
       comm_success: this.evse.status.comm_success,
       amp: this.evse.status.amp,
@@ -196,8 +194,20 @@ module.exports = class OpenEVSEWiFi extends base
         this._config.mqtt.enabled = options.mqtt.enabled;
         modified = true;
       }
+      if(options.mqtt.hasOwnProperty("protocol") && this._config.mqtt.protocol !== options.mqtt.protocol) {
+        this._config.mqtt.protocol = options.mqtt.protocol;
+        modified = true;
+      }
       if(options.mqtt.hasOwnProperty("server") && this._config.mqtt.server !== options.mqtt.server) {
         this._config.mqtt.server = options.mqtt.server;
+        modified = true;
+      }
+      if(options.mqtt.hasOwnProperty("port") && this._config.mqtt.port !== options.mqtt.port) {
+        this._config.mqtt.port = options.mqtt.port;
+        modified = true;
+      }
+      if(options.mqtt.hasOwnProperty("reject_unauthorized") && this._config.mqtt.reject_unauthorized !== options.mqtt.reject_unauthorized) {
+        this._config.mqtt.reject_unauthorized = options.mqtt.reject_unauthorized;
         modified = true;
       }
       if(options.mqtt.hasOwnProperty("topic") && this._config.mqtt.topic !== options.mqtt.topic) {
