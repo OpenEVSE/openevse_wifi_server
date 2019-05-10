@@ -13,6 +13,7 @@ module.exports = class extends EventEmitter
   {
     super();
     this.evse = evse;
+    this.client = false;
 
     this._status = {
       mqtt_connected: 0
@@ -20,7 +21,10 @@ module.exports = class extends EventEmitter
 
     this.config = {
       enabled: false,
+      protocol: "mqtt",
       server: "emonpi.local",
+      port: 1883,
+      reject_unauthorized: true,
       topic: "openevse",
       user: "emonpi",
       pass: "emonpimqtt2016",
@@ -41,13 +45,14 @@ module.exports = class extends EventEmitter
   connect(config)
   {
     this.config = config;
+    debug(this.config);
 
     this.status = {
       mqtt_connected: 0
     };
     if(this.config.enabled)
     {
-      var opts = { };
+      var opts = { rejectUnauthorized: this.config.reject_unauthorized };
 
       if(this.config.user && this.config.pass)
       {
@@ -55,7 +60,7 @@ module.exports = class extends EventEmitter
         opts.password = this.config.pass;
       }
 
-      var client = mqtt.connect("mqtt://"+this.config.server, opts);
+      var client = mqtt.connect(this.config.protocol+"://"+this.config.server+":"+this.config.port, opts);
       client.on("connect", () =>
       {
         this.status = { mqtt_connected: 1 };
@@ -88,18 +93,22 @@ module.exports = class extends EventEmitter
           this.evse.status = { solar: solar, divert_update: 0 };
         }
       });
-      return client;
+
+      client.on("error", (error) => {
+        debug("MQTT error", error);
+      });
+      this.client = client;
     }
 
     return false;
   }
 
   publish(data) {
-    if (this.config.enabled && this._status.mqtt_connected) {
+    if (this.config.enabled && this.status.mqtt_connected) {
       for (var name in data) {
         if (data.hasOwnProperty(name)) {
           var topic = this.config.topic + "/" + name;
-          this.mqttBroker.publish(topic, String(data[name]));
+          this.client.publish(topic, String(data[name]));
         }
       }
     }

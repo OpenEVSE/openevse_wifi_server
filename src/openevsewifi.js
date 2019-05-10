@@ -32,7 +32,10 @@ module.exports = class OpenEVSEWiFi extends base
       },
       mqtt: {
         enabled: false,
+        protocol: "mqtt",
         server: "emonpi.local",
+        port: 1883,
+        reject_unauthorized: true,
         topic: "openevse",
         user: "emonpi",
         pass: "emonpimqtt2016",
@@ -161,23 +164,23 @@ module.exports = class OpenEVSEWiFi extends base
     if(options.emoncms)
     {
       modified = false;
-      if(options.emoncms.enabled && this._config.emoncms.enabled !== options.emoncms.enabled) {
+      if(options.emoncms.hasOwnProperty("enabled") && this._config.emoncms.enabled !== options.emoncms.enabled) {
         this._config.emoncms.enabled = options.emoncms.enabled;
         modified = true;
       }
-      if(options.emoncms.server && this._config.emoncms.server !== options.emoncms.server) {
+      if(options.emoncms.hasOwnProperty("server") && this._config.emoncms.server !== options.emoncms.server) {
         this._config.emoncms.server = options.emoncms.server;
         modified = true;
       }
-      if(options.emoncms.node && this._config.emoncms.node !== options.emoncms.node) {
+      if(options.emoncms.hasOwnProperty("node") && this._config.emoncms.node !== options.emoncms.node) {
         this._config.emoncms.node = options.emoncms.node;
         modified = true;
       }
-      if(options.emoncms.apikey && this._config.emoncms.apikey !== options.emoncms.apikey) {
+      if(options.emoncms.hasOwnProperty("apikey") && this._config.emoncms.apikey !== options.emoncms.apikey) {
         this._config.emoncms.apikey = options.emoncms.apikey;
         modified = true;
       }
-      if(options.emoncms.fingerprint && this._config.emoncms.fingerprint !== options.emoncms.fingerprint) {
+      if(options.emoncms.hasOwnProperty("fingerprint") && this._config.emoncms.fingerprint !== options.emoncms.fingerprint) {
         this._config.emoncms.fingerprint = options.emoncms.fingerprint;
         modified = true;
       }
@@ -189,31 +192,31 @@ module.exports = class OpenEVSEWiFi extends base
     if(options.mqtt)
     {
       modified = false;
-      if(options.mqtt.enabled && this._config.mqtt.enabled !== options.mqtt.enabled) {
+      if(options.mqtt.hasOwnProperty("enabled") && this._config.mqtt.enabled !== options.mqtt.enabled) {
         this._config.mqtt.enabled = options.mqtt.enabled;
         modified = true;
       }
-      if(options.mqtt.server && this._config.mqtt.server !== options.mqtt.server) {
+      if(options.mqtt.hasOwnProperty("server") && this._config.mqtt.server !== options.mqtt.server) {
         this._config.mqtt.server = options.mqtt.server;
         modified = true;
       }
-      if(options.mqtt.topic && this._config.mqtt.topic !== options.mqtt.topic) {
+      if(options.mqtt.hasOwnProperty("topic") && this._config.mqtt.topic !== options.mqtt.topic) {
         this._config.mqtt.topic = options.mqtt.topic;
         modified = true;
       }
-      if(options.mqtt.user && this._config.mqtt.user !== options.mqtt.user) {
+      if(options.mqtt.hasOwnProperty("user") && this._config.mqtt.user !== options.mqtt.user) {
         this._config.mqtt.user = options.mqtt.user;
         modified = true;
       }
-      if(options.mqtt.pass && this._config.mqtt.pass !== options.mqtt.pass) {
+      if(options.mqtt.hasOwnProperty("pass") && this._config.mqtt.pass !== options.mqtt.pass) {
         this._config.mqtt.pass = options.mqtt.pass;
         modified = true;
       }
-      if(options.mqtt.solar && this._config.mqtt.solar !== options.mqtt.solar) {
+      if(options.mqtt.hasOwnProperty("solar") && this._config.mqtt.solar !== options.mqtt.solar) {
         this._config.mqtt.solar = options.mqtt.solar;
         modified = true;
       }
-      if(options.mqtt.grid_ie && this._config.mqtt.grid_ie !== options.mqtt.grid_ie) {
+      if(options.mqtt.hasOwnProperty("grid_ie") && this._config.mqtt.grid_ie !== options.mqtt.grid_ie) {
         this._config.mqtt.grid_ie = options.mqtt.grid_ie;
         modified = true;
       }
@@ -226,11 +229,11 @@ module.exports = class OpenEVSEWiFi extends base
     if(options.ohm)
     {
       modified = false;
-      if(options.ohm.enabled && this._config.ohm.enabled !== options.ohm.enabled) {
+      if(options.ohm.hasOwnProperty("enabled") && this._config.ohm.enabled !== options.ohm.enabled) {
         this._config.ohm.enabled = options.ohm.enabled;
         modified = true;
       }
-      if(options.ohm.key && this._config.ohm.key !== options.ohm.key) {
+      if(options.ohm.hasOwnProperty("key") && this._config.ohm.key !== options.ohm.key) {
         this._config.ohm.key = options.ohm.key;
         modified = true;
       }
