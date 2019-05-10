@@ -15,7 +15,7 @@ module.exports = class emoncms extends base
     this.evse = evse;
 
     this._status = {
-      emoncms_connected: 0,
+      connected: 0,
       packets_sent: 0,
       packets_success: 0
     };
@@ -38,7 +38,7 @@ module.exports = class emoncms extends base
           payload: data
         }).then(function () {
           this.status = {
-            emoncms_connected: 1,
+            connected: 1,
             packets_success: this._status.packets_success + 1
           };
         }.bind(this)).catch(function (error) {
@@ -50,7 +50,7 @@ module.exports = class emoncms extends base
 
   connect(config)
   {
-    this.status = { emoncms_connected: 0 };
+    this.status = { connected: 0 };
 
     this.config = config;
   }
