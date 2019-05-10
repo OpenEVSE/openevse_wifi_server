@@ -26,14 +26,14 @@ Run with, where `<endpoint>` is the serial port where the open_evse controller:
 openevse_wifi --endpoint <endpoint>
 ```
 
-#### To Install on Raspbian Stretch 
+### To Install on Raspbian Stretch
 
 NPM must be updated since updated NPM package is no longer mentained for Stretch
 
 ```shell
 curl -sL https://deb.nodesource.com/setup_10.x | sudo bash -
 sudo apt-get install -y nodejs
-sudo chown -R pi ~/.config/ 
+sudo chown -R pi ~/.config/
 sudo chown -R pi ~/.npm
 sudo chown -R pi /usr/lib/node_modules/
 npm install -g openevse_wifi
@@ -73,7 +73,7 @@ or
 npm start -- --port 3000 --endpoint http://openevse.local/r
 ```
 
-Then point your browser at http://localhost:3000/
+Then point your browser at <http://localhost:3000/>
 
 ### Linking to GUI
 
@@ -101,7 +101,7 @@ npm install
 
 ## Debugging
 
-OpenEVSE WiFi uses the [debug]() library as does a number of the dependant modules. To enable debug you set the `DEBUG` variable to a filter indicating the modules you wish to receive debug from, eg;
+OpenEVSE WiFi uses the [debug](https://github.com/visionmedia/debug#readme) library as does a number of the dependant modules. To enable debug you set the `DEBUG` variable to a filter indicating the modules you wish to receive debug from, eg;
 
 ```shell
 export DEBUG=openevse*
@@ -154,6 +154,20 @@ docker run --rm -it --env DEBUG=openevse* --name openevse -p 3000:3000/tcp --dns
 Note: Docker by default does not use the same DNS as the host machine so you need to use the `--dns` option to use your local DNS server (probably your router).
 
 TODO mDNS setup.
+
+## Enabling HTTPS
+
+To enable HTTPS on the server use the `--cert` and `--key` command line options to pass in the paths of the X.509 certificate and the associated private key.
+
+```shell
+npm start -- --cert server.cert --key server.key
+```
+
+You can generate a self-signed certificate/key using an [on-line tool](https://www.samltool.com/self_signed_certs.php) or the OpenSSL command line, eg.
+
+```shell
+openssl req -nodes -new -x509 -keyout server.key -out server.cert
+```
 
 ***
 
