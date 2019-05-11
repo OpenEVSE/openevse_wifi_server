@@ -129,10 +129,7 @@ app.post("/savemqtt", function (req, res) {
   var config = {
     mqtt: {
       enabled: req.body.enable,
-      protocol: req.body.protocol,
       server: req.body.server,
-      port: req.body.port,
-      reject_unauthorized: req.body.reject_unauthorized,
       topic: req.body.topic,
       user: req.body.user,
       solar: req.body.solar,
@@ -141,6 +138,15 @@ app.post("/savemqtt", function (req, res) {
   };
   if(DUMMY_PASSWORD !== req.body.pass) {
     config.mqtt.pass = req.body.pass;
+  }
+  if(req.body.hasOwnProperty("protocol")) {
+    config.mqtt.protocol = req.body.protocol;
+  }
+  if(req.body.hasOwnProperty("port")) {
+    config.mqtt.port = req.body.port;
+  }
+  if(req.body.hasOwnProperty("reject_unauthorized")) {
+    config.mqtt.reject_unauthorized = req.body.reject_unauthorized;
   }
   data.config = config;
   res.send("Saved: " + req.body.server + " " + req.body.topic + " " + req.body.user + " " + req.body.pass);
