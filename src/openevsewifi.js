@@ -145,100 +145,45 @@ module.exports = class OpenEVSEWiFi extends base
 
   set config(options)
   {
-    var modified;
+    var modified, updated;
     debug(options);
+
     if(options.emoncms)
     {
-      modified = false;
-      if(options.emoncms.hasOwnProperty("enabled") && this._config.emoncms.enabled !== options.emoncms.enabled) {
-        this._config.emoncms.enabled = options.emoncms.enabled;
-        modified = true;
-      }
-      if(options.emoncms.hasOwnProperty("server") && this._config.emoncms.server !== options.emoncms.server) {
-        this._config.emoncms.server = options.emoncms.server;
-        modified = true;
-      }
-      if(options.emoncms.hasOwnProperty("node") && this._config.emoncms.node !== options.emoncms.node) {
-        this._config.emoncms.node = options.emoncms.node;
-        modified = true;
-      }
-      if(options.emoncms.hasOwnProperty("apikey") && this._config.emoncms.apikey !== options.emoncms.apikey) {
-        this._config.emoncms.apikey = options.emoncms.apikey;
-        modified = true;
-      }
-      if(options.emoncms.hasOwnProperty("fingerprint") && this._config.emoncms.fingerprint !== options.emoncms.fingerprint) {
-        this._config.emoncms.fingerprint = options.emoncms.fingerprint;
-        modified = true;
-      }
+      ({ modified, updated } = this.updateConfig(this.config.emoncms, options.emoncms));
       if(modified) {
-        config.save(this._config);
-        this.emoncms.connect(this._config.emoncms);
+        this.emoncms.connect(updated);
+        config.save(this.config);
       }
     }
     if(options.mqtt)
     {
-      modified = false;
-      if(options.mqtt.hasOwnProperty("enabled") && this._config.mqtt.enabled !== options.mqtt.enabled) {
-        this._config.mqtt.enabled = options.mqtt.enabled;
-        modified = true;
-      }
-      if(options.mqtt.hasOwnProperty("protocol") && this._config.mqtt.protocol !== options.mqtt.protocol) {
-        this._config.mqtt.protocol = options.mqtt.protocol;
-        modified = true;
-      }
-      if(options.mqtt.hasOwnProperty("server") && this._config.mqtt.server !== options.mqtt.server) {
-        this._config.mqtt.server = options.mqtt.server;
-        modified = true;
-      }
-      if(options.mqtt.hasOwnProperty("port") && this._config.mqtt.port !== options.mqtt.port) {
-        this._config.mqtt.port = options.mqtt.port;
-        modified = true;
-      }
-      if(options.mqtt.hasOwnProperty("reject_unauthorized") && this._config.mqtt.reject_unauthorized !== options.mqtt.reject_unauthorized) {
-        this._config.mqtt.reject_unauthorized = options.mqtt.reject_unauthorized;
-        modified = true;
-      }
-      if(options.mqtt.hasOwnProperty("topic") && this._config.mqtt.topic !== options.mqtt.topic) {
-        this._config.mqtt.topic = options.mqtt.topic;
-        modified = true;
-      }
-      if(options.mqtt.hasOwnProperty("user") && this._config.mqtt.user !== options.mqtt.user) {
-        this._config.mqtt.user = options.mqtt.user;
-        modified = true;
-      }
-      if(options.mqtt.hasOwnProperty("pass") && this._config.mqtt.pass !== options.mqtt.pass) {
-        this._config.mqtt.pass = options.mqtt.pass;
-        modified = true;
-      }
-      if(options.mqtt.hasOwnProperty("solar") && this._config.mqtt.solar !== options.mqtt.solar) {
-        this._config.mqtt.solar = options.mqtt.solar;
-        modified = true;
-      }
-      if(options.mqtt.hasOwnProperty("grid_ie") && this._config.mqtt.grid_ie !== options.mqtt.grid_ie) {
-        this._config.mqtt.grid_ie = options.mqtt.grid_ie;
-        modified = true;
-      }
-
+      ({ modified, updated } = this.updateConfig(this.config.mqtt, options.mqtt));
       if(modified) {
-        config.save(this._config);
-        this.mqtt.connect(this._config.mqtt);
+        this.mqtt.connect(updated);
+        config.save(this.config);
       }
     }
     if(options.ohm)
     {
-      modified = false;
-      if(options.ohm.hasOwnProperty("enabled") && this._config.ohm.enabled !== options.ohm.enabled) {
-        this._config.ohm.enabled = options.ohm.enabled;
-        modified = true;
-      }
-      if(options.ohm.hasOwnProperty("key") && this._config.ohm.key !== options.ohm.key) {
-        this._config.ohm.key = options.ohm.key;
-        modified = true;
-      }
+      ({ modified, updated } = this.updateConfig(this.config.ohm, options.ohm));
       if(modified) {
-        config.save(this._config);
-        this.ohmconnect.connect(this._config.ohm);
+        this.ohmconnect.connect(updated);
+        config.save(this.config);
       }
     }
+  }
+
+  updateConfig(existing, options) {
+    var modified = false;
+    for (const key in existing) {
+      if (existing.hasOwnProperty(key)) {
+        if (options.hasOwnProperty(key) && existing[key] !== options[key]) {
+          existing[key] = options[key];
+          modified = true;
+        }
+      }
+    }
+    return { modified: modified, updated: existing };
   }
 };
