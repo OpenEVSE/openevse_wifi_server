@@ -16,7 +16,7 @@ module.exports = class extends base
     this.client = false;
 
     this._status = {
-      connected: 0
+      mqtt_connected: 0
     };
 
     this.config = {
@@ -50,8 +50,15 @@ module.exports = class extends base
     debug(this.config);
 
     this.status = {
-      connected: 0
+      mqtt_connected: 0
     };
+
+    // Disconnect any existing client
+    if(false !== this.client) {
+      this.client.end();
+      this.client = false;
+    }
+
     if(this.config.enabled)
     {
       var opts = { rejectUnauthorized: this.config.reject_unauthorized };
@@ -65,7 +72,7 @@ module.exports = class extends base
       var client = mqtt.connect(this.config.protocol+"://"+this.config.server+":"+this.config.port, opts);
       client.on("connect", () =>
       {
-        this.status = { connected: 1 };
+        this.status = { mqtt_connected: 1 };
         client.subscribe(this.config.topic + "/rapi/in/#");
         client.subscribe(this.config.topic + "/divertmode/set");
         if(this.config.grid_ie) {
@@ -106,7 +113,7 @@ module.exports = class extends base
   }
 
   publish(data) {
-    if (this.config.enabled && this.status.connected) {
+    if (this.config.enabled && this.status.mqtt_connected) {
       for (var name in data) {
         if (data.hasOwnProperty(name)) {
           var topic = this.config.topic + "/" + name;
