@@ -77,14 +77,14 @@ module.exports = class OpenEVSEWiFi extends base
       var newStatus = { ipaddress: obj.ip_address };
       switch(obj.type)
       {
-      case "Wired":
-        newStatus.mode = "Wired";
-        newStatus.wifi_client_connected = 0;
-        break;
-      case "Wireless":
-        newStatus.mode = "STA";
-        newStatus.wifi_client_connected = 1;
-        break;
+        case "Wired":
+          newStatus.mode = "Wired";
+          newStatus.wifi_client_connected = 0;
+          break;
+        case "Wireless":
+          newStatus.mode = "STA";
+          newStatus.wifi_client_connected = 1;
+          break;
       }
 
       this.status = newStatus;
@@ -98,10 +98,10 @@ module.exports = class OpenEVSEWiFi extends base
       srssi: this._status.srssi,
       ipaddress: this._status.ipaddress,
       network_manager: this._status.network_manager,
-      emoncms_connected: this.emoncms.status.connected,
+      emoncms_connected: this.emoncms.status.emoncms_connected,
       packets_sent: this.emoncms.packets_sent,
       packets_success: this.emoncms.packets_success,
-      mqtt_connected: this.mqtt.status.connected,
+      mqtt_connected: this.mqtt.status.mqtt_connected,
       ohm_hour: this.ohmconnect.status.ohm_hour,
       ohm_started_charge: this.ohmconnect.status.ohm_started_charge,
       free_heap: this.evse.status.free_heap,
