@@ -16,6 +16,13 @@ var data = false;
 // Create HTTP server by ourselves.
 //
 
+function stringToBoolean(string){
+  switch(string.toLowerCase().trim()){
+    case "false": case "no": case "0": case null: return false;
+    default: return true;
+  }
+}
+
 // Setup the static content
 app.use(express.static(require("openevse_wifi_gui"), { index: "home.html" }));
 
@@ -59,14 +66,17 @@ app.get("/config", function (req, res) {
     emoncms_server: data.config.emoncms.server,
     emoncms_node: data.config.emoncms.node,
     emoncms_apikey: data.config.emoncms.apikey ? DUMMY_PASSWORD : "",
-    emoncms_fingerprint: data.config.emoncms.fingerprint,
     mqtt_enabled: data.config.mqtt.enabled,
+    mqtt_protocol: data.config.mqtt.protocol,
     mqtt_server: data.config.mqtt.server,
+    mqtt_port: data.config.mqtt.port,
+    mqtt_reject_unauthorized: data.config.mqtt.reject_unauthorized,
     mqtt_topic: data.config.mqtt.topic,
     mqtt_user: data.config.mqtt.user,
     mqtt_pass: data.config.mqtt.pass ? DUMMY_PASSWORD : "",
     mqtt_solar: data.config.mqtt.solar,
     mqtt_grid_ie: data.config.mqtt.grid_ie,
+    mqtt_supported_protocols: ["mqtt", "mqtts", "tcp", "tls", "ws", "wss"],
     www_username: data.config.www.username,
     www_password: data.config.www.password ? DUMMY_PASSWORD : "",
     ohm_enabled: data.config.ohm.enabled,
@@ -108,10 +118,9 @@ app.post("/saveemoncms", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
   var config = {
     emoncms: {
-      enabled: req.body.enable,
+      enabled: stringToBoolean(req.body.enable),
       server: req.body.server,
-      node: req.body.node,
-      fingerprint: req.body.fingerprint
+      node: req.body.node
     }
   };
   if(DUMMY_PASSWORD !== req.body.apikey) {
@@ -125,7 +134,7 @@ app.post("/savemqtt", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
   var config = {
     mqtt: {
-      enabled: req.body.enable,
+      enabled: stringToBoolean(req.body.enable),
       server: req.body.server,
       topic: req.body.topic,
       user: req.body.user,
@@ -135,6 +144,15 @@ app.post("/savemqtt", function (req, res) {
   };
   if(DUMMY_PASSWORD !== req.body.pass) {
     config.mqtt.pass = req.body.pass;
+  }
+  if(req.body.hasOwnProperty("protocol")) {
+    config.mqtt.protocol = req.body.protocol;
+  }
+  if(req.body.hasOwnProperty("port")) {
+    config.mqtt.port = parseInt(req.body.port);
+  }
+  if(req.body.hasOwnProperty("reject_unauthorized")) {
+    config.mqtt.reject_unauthorized = stringToBoolean(req.body.reject_unauthorized);
   }
   data.config = config;
   res.send("Saved: " + req.body.server + " " + req.body.topic + " " + req.body.user + " " + req.body.pass);
@@ -149,7 +167,7 @@ app.post("/saveohmkey", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
   var config = {
     ohm: {
-      enabled: req.body.enable,
+      enabled: stringToBoolean(req.body.enable),
     }
   };
   if(DUMMY_PASSWORD !== req.body.ohm) {
@@ -194,7 +212,7 @@ app.get("/emoncms/describe", function (req, res) {
 
 exports.start = function(evseApp, port, cert = false, key = false) {
   data = evseApp;
-  data.evse.on("status", (status) => {
+  data.on("status", (status) => {
     ws.sendAll(status);
   });
 

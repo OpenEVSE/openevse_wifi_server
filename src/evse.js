@@ -8,7 +8,7 @@ const base = require("./base");
 const openevse = require("openevse");
 //const debug = require("debug")("openevse:evse");
 
-module.exports = class emoncms extends base
+module.exports = class extends base
 {
   constructor(endpoint)
   {
@@ -163,7 +163,6 @@ module.exports = class emoncms extends base
 
   }
 
-
   runList(list, always, delay = 0, count = 0)
   {
     if(count >= list.length) {
@@ -210,11 +209,15 @@ module.exports = class emoncms extends base
   }
 
   get status() {
+    var mem = process.memoryUsage();
+
     if(this.evseConn) {
       this._status.comm_sent = this.evseConn.comm_sent;
       this._status.comm_success = this.evseConn.comm_success;
     }
     this._status.divert_update = this.divert.feed_age;
+    this._status.free_heap = mem.heapTotal - mem.heapUsed;
+
     return this._status;
   }
   set status(newStatus) {

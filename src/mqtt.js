@@ -4,15 +4,16 @@
 
 const mqtt = require("mqtt");
 
-const EventEmitter = require("events");
+const base = require("./base");
 const debug = require("debug")("openevse:mqtt");
 
-module.exports = class extends EventEmitter
+module.exports = class extends base
 {
   constructor(evse)
   {
     super();
     this.evse = evse;
+    this.client = false;
 
     this._status = {
       mqtt_connected: 0
@@ -20,7 +21,10 @@ module.exports = class extends EventEmitter
 
     this.config = {
       enabled: false,
+      protocol: "mqtt",
       server: "emonpi.local",
+      port: 1883,
+      reject_unauthorized: true,
       topic: "openevse",
       user: "emonpi",
       pass: "emonpimqtt2016",
@@ -33,21 +37,31 @@ module.exports = class extends EventEmitter
     });
 
     this.evse.on("data", (data) => {
-      this.publish(data);
+      // Only need freeram from this, all the rest is evented via status updates
+      this.publish({
+        freeram: data.freeram
+      });
     });
-
   }
 
   connect(config)
   {
-    this.config = config;
+    this.config = Object.assign(this.config, config);
+    debug(this.config);
 
     this.status = {
       mqtt_connected: 0
     };
+
+    // Disconnect any existing client
+    if(false !== this.client) {
+      this.client.end();
+      this.client = false;
+    }
+
     if(this.config.enabled)
     {
-      var opts = { };
+      var opts = { rejectUnauthorized: this.config.reject_unauthorized };
 
       if(this.config.user && this.config.pass)
       {
@@ -55,7 +69,7 @@ module.exports = class extends EventEmitter
         opts.password = this.config.pass;
       }
 
-      var client = mqtt.connect("mqtt://"+this.config.server, opts);
+      var client = mqtt.connect(this.config.protocol+"://"+this.config.server+":"+this.config.port, opts);
       client.on("connect", () =>
       {
         this.status = { mqtt_connected: 1 };
@@ -88,18 +102,22 @@ module.exports = class extends EventEmitter
           this.evse.status = { solar: solar, divert_update: 0 };
         }
       });
-      return client;
+
+      client.on("error", (error) => {
+        debug("MQTT error", error);
+      });
+      this.client = client;
     }
 
     return false;
   }
 
   publish(data) {
-    if (this.config.enabled && this._status.mqtt_connected) {
+    if (this.config.enabled && this.status.mqtt_connected) {
       for (var name in data) {
         if (data.hasOwnProperty(name)) {
           var topic = this.config.topic + "/" + name;
-          this.mqttBroker.publish(topic, String(data[name]));
+          this.client.publish(topic, String(data[name]));
         }
       }
     }

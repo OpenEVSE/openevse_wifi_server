@@ -1,3 +1,5 @@
+/* jshint node: true, esversion: 6*/
+
 // Load/Save config
 
 "use strict";

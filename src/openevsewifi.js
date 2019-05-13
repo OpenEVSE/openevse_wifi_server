@@ -23,30 +23,10 @@ module.exports = class OpenEVSEWiFi extends base
         ssid: "demo",
         pass: ""
       },
-      emoncms: {
-        enabled: false,
-        server: "https://data.openevse.com/emoncms",
-        node: "openevse",
-        apikey: "",
-        fingerprint: ""
-      },
-      mqtt: {
-        enabled: false,
-        server: "emonpi.local",
-        topic: "openevse",
-        user: "emonpi",
-        pass: "emonpimqtt2016",
-        solar: "",
-        grid_ie: ""
-      },
       www: {
         username: "",
         password: ""
-      },
-      ohm: {
-        enabled: false,
-        key: ""
-      },
+      }
     };
     this._status = {
       mode: "NA",
@@ -59,12 +39,14 @@ module.exports = class OpenEVSEWiFi extends base
 
   start(endpoint)
   {
-    this._config = config.load(this._config);
-
     this.evse = new evse(endpoint);
     this.emoncms = new emoncms(this.evse);
     this.mqtt = new mqtt(this.evse);
     this.ohmconnect = new ohmconnect(this.evse);
+
+    var options = config.load(this.config);
+    this._config.wifi = Object.assign(this._config.wifi, options.wifi);
+    this._config.www = Object.assign(this._config.www, options.www);
 
     this.evse.on("status", (changedData) => {
       this.emit("status", changedData);
@@ -80,9 +62,9 @@ module.exports = class OpenEVSEWiFi extends base
     });
 
     this.evse.on("boot", () => {
-      this.emoncms.connect(this.config.emoncms);
-      this.mqtt.connect(this.config.mqtt);
-      this.ohmconnect.connect(this.config.ohm);
+      this.emoncms.connect(options.emoncms);
+      this.mqtt.connect(options.mqtt);
+      this.ohmconnect.connect(options.ohm);
       this.emit("boot");
     });
 
@@ -95,14 +77,14 @@ module.exports = class OpenEVSEWiFi extends base
       var newStatus = { ipaddress: obj.ip_address };
       switch(obj.type)
       {
-      case "Wired":
-        newStatus.mode = "Wired";
-        newStatus.wifi_client_connected = 0;
-        break;
-      case "Wireless":
-        newStatus.mode = "STA";
-        newStatus.wifi_client_connected = 1;
-        break;
+        case "Wired":
+          newStatus.mode = "Wired";
+          newStatus.wifi_client_connected = 0;
+          break;
+        case "Wireless":
+          newStatus.mode = "STA";
+          newStatus.wifi_client_connected = 1;
+          break;
       }
 
       this.status = newStatus;
@@ -110,21 +92,19 @@ module.exports = class OpenEVSEWiFi extends base
   }
 
   get status() {
-    var mem = process.memoryUsage();
-
     return {
       mode: this._status.mode,
       wifi_client_connected: this._status.wifi_client_connected,
       srssi: this._status.srssi,
       ipaddress: this._status.ipaddress,
       network_manager: this._status.network_manager,
-      emoncms_connected: this.emoncms.connected,
+      emoncms_connected: this.emoncms.status.emoncms_connected,
       packets_sent: this.emoncms.packets_sent,
       packets_success: this.emoncms.packets_success,
-      mqtt_connected: this.mqtt.status.connected,
+      mqtt_connected: this.mqtt.status.mqtt_connected,
       ohm_hour: this.ohmconnect.status.ohm_hour,
       ohm_started_charge: this.ohmconnect.status.ohm_started_charge,
-      free_heap: mem.heapTotal - mem.heapUsed,
+      free_heap: this.evse.status.free_heap,
       comm_sent: this.evse.status.comm_sent,
       comm_success: this.evse.status.comm_success,
       amp: this.evse.status.amp,
@@ -151,93 +131,59 @@ module.exports = class OpenEVSEWiFi extends base
   }
 
   get config() {
-    return this._config;
+    return {
+      wifi: this._config.wifi,
+      www: this._config.www,
+      emoncms: this.emoncms.config,
+      mqtt: this.mqtt.config,
+      ohm: {
+        enabled: this.ohmconnect.enabled,
+        key: this.ohmconnect.key
+      }
+    };
   }
 
   set config(options)
   {
-    var modified;
+    var modified, updated;
     debug(options);
+
     if(options.emoncms)
     {
-      modified = false;
-      if(options.emoncms.enabled && this._config.emoncms.enabled !== options.emoncms.enabled) {
-        this._config.emoncms.enabled = options.emoncms.enabled;
-        modified = true;
-      }
-      if(options.emoncms.server && this._config.emoncms.server !== options.emoncms.server) {
-        this._config.emoncms.server = options.emoncms.server;
-        modified = true;
-      }
-      if(options.emoncms.node && this._config.emoncms.node !== options.emoncms.node) {
-        this._config.emoncms.node = options.emoncms.node;
-        modified = true;
-      }
-      if(options.emoncms.apikey && this._config.emoncms.apikey !== options.emoncms.apikey) {
-        this._config.emoncms.apikey = options.emoncms.apikey;
-        modified = true;
-      }
-      if(options.emoncms.fingerprint && this._config.emoncms.fingerprint !== options.emoncms.fingerprint) {
-        this._config.emoncms.fingerprint = options.emoncms.fingerprint;
-        modified = true;
-      }
+      ({ modified, updated } = this.updateConfig(this.config.emoncms, options.emoncms));
       if(modified) {
-        config.save(this._config);
-        this.emoncms.connect(this._config.emoncms);
+        this.emoncms.connect(updated);
+        config.save(this.config);
       }
     }
     if(options.mqtt)
     {
-      modified = false;
-      if(options.mqtt.enabled && this._config.mqtt.enabled !== options.mqtt.enabled) {
-        this._config.mqtt.enabled = options.mqtt.enabled;
-        modified = true;
-      }
-      if(options.mqtt.server && this._config.mqtt.server !== options.mqtt.server) {
-        this._config.mqtt.server = options.mqtt.server;
-        modified = true;
-      }
-      if(options.mqtt.topic && this._config.mqtt.topic !== options.mqtt.topic) {
-        this._config.mqtt.topic = options.mqtt.topic;
-        modified = true;
-      }
-      if(options.mqtt.user && this._config.mqtt.user !== options.mqtt.user) {
-        this._config.mqtt.user = options.mqtt.user;
-        modified = true;
-      }
-      if(options.mqtt.pass && this._config.mqtt.pass !== options.mqtt.pass) {
-        this._config.mqtt.pass = options.mqtt.pass;
-        modified = true;
-      }
-      if(options.mqtt.solar && this._config.mqtt.solar !== options.mqtt.solar) {
-        this._config.mqtt.solar = options.mqtt.solar;
-        modified = true;
-      }
-      if(options.mqtt.grid_ie && this._config.mqtt.grid_ie !== options.mqtt.grid_ie) {
-        this._config.mqtt.grid_ie = options.mqtt.grid_ie;
-        modified = true;
-      }
-
+      ({ modified, updated } = this.updateConfig(this.config.mqtt, options.mqtt));
       if(modified) {
-        config.save(this._config);
-        this.mqtt.connect(this._config.mqtt);
+        this.mqtt.connect(updated);
+        config.save(this.config);
       }
     }
     if(options.ohm)
     {
-      modified = false;
-      if(options.ohm.enabled && this._config.ohm.enabled !== options.ohm.enabled) {
-        this._config.ohm.enabled = options.ohm.enabled;
-        modified = true;
-      }
-      if(options.ohm.key && this._config.ohm.key !== options.ohm.key) {
-        this._config.ohm.key = options.ohm.key;
-        modified = true;
-      }
+      ({ modified, updated } = this.updateConfig(this.config.ohm, options.ohm));
       if(modified) {
-        config.save(this._config);
-        this.ohmconnect.connect(this._config.ohm);
+        this.ohmconnect.connect(updated);
+        config.save(this.config);
       }
     }
+  }
+
+  updateConfig(existing, options) {
+    var modified = false;
+    for (const key in existing) {
+      if (existing.hasOwnProperty(key)) {
+        if (options.hasOwnProperty(key) && existing[key] !== options[key]) {
+          existing[key] = options[key];
+          modified = true;
+        }
+      }
+    }
+    return { modified: modified, updated: existing };
   }
 };

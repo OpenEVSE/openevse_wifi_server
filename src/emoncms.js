@@ -51,7 +51,6 @@ module.exports = class emoncms extends base
   connect(config)
   {
     this.status = { emoncms_connected: 0 };
-
-    this.config = config;
+    this.config = Object.assign(this.config, config);
   }
 };
