@@ -16,6 +16,13 @@ var data = false;
 // Create HTTP server by ourselves.
 //
 
+function stringToBoolean(string){
+  switch(string.toLowerCase().trim()){
+    case "false": case "no": case "0": case null: return false;
+    default: return true;
+  }
+}
+
 // Setup the static content
 app.use(express.static(require("openevse_wifi_gui"), { index: "home.html" }));
 
@@ -111,10 +118,9 @@ app.post("/saveemoncms", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
   var config = {
     emoncms: {
-      enabled: req.body.enable,
+      enabled: stringToBoolean(req.body.enable),
       server: req.body.server,
-      node: req.body.node,
-      fingerprint: req.body.fingerprint
+      node: req.body.node
     }
   };
   if(DUMMY_PASSWORD !== req.body.apikey) {
@@ -128,7 +134,7 @@ app.post("/savemqtt", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
   var config = {
     mqtt: {
-      enabled: req.body.enable,
+      enabled: stringToBoolean(req.body.enable),
       server: req.body.server,
       topic: req.body.topic,
       user: req.body.user,
@@ -143,10 +149,10 @@ app.post("/savemqtt", function (req, res) {
     config.mqtt.protocol = req.body.protocol;
   }
   if(req.body.hasOwnProperty("port")) {
-    config.mqtt.port = req.body.port;
+    config.mqtt.port = parseInt(req.body.port);
   }
   if(req.body.hasOwnProperty("reject_unauthorized")) {
-    config.mqtt.reject_unauthorized = req.body.reject_unauthorized;
+    config.mqtt.reject_unauthorized = stringToBoolean(req.body.reject_unauthorized);
   }
   data.config = config;
   res.send("Saved: " + req.body.server + " " + req.body.topic + " " + req.body.user + " " + req.body.pass);
@@ -161,7 +167,7 @@ app.post("/saveohmkey", function (req, res) {
   res.header("Cache-Control", "no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0");
   var config = {
     ohm: {
-      enabled: req.body.enable,
+      enabled: stringToBoolean(req.body.enable),
     }
   };
   if(DUMMY_PASSWORD !== req.body.ohm) {
@@ -206,7 +212,7 @@ app.get("/emoncms/describe", function (req, res) {
 
 exports.start = function(evseApp, port) {
   data = evseApp;
-  data.evse.on("status", (status) => {
+  data.on("status", (status) => {
     ws.sendAll(status);
   });
   app.listen(port, () => console.log("OpenEVSE WiFi Simulator listening on port " + port + "!"));
