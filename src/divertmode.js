@@ -38,18 +38,18 @@ module.exports = class DivertMode extends EventEmitter {
   set mode(value) {
     if (this._mode !== value) {
       switch (value) {
-      case this.NORMAL:
-        // Restore the max charge current
-        debug("Mode changed to normal");
-        this.openevse.current_capacity(() => { }, this.max_charge_current);
-        break;
-      case this.ECO:
-        // Read the current charge current, assume this is the max set by the user
-        debug("Mode changed to eco");
-        this.openevse.current_capacity((capacity) => {
-          this.max_charge_current = capacity;
-        });
-        break;
+        case this.NORMAL:
+          // Restore the max charge current
+          debug("Mode changed to normal");
+          this.openevse.current_capacity(() => { }, this.max_charge_current);
+          break;
+        case this.ECO:
+          // Read the current charge current, assume this is the max set by the user
+          debug("Mode changed to eco");
+          this.openevse.current_capacity((capacity) => {
+            this.max_charge_current = capacity;
+          });
+          break;
       }
 
       this._mode = value;
