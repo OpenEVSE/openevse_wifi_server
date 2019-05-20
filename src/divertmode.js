@@ -16,9 +16,8 @@ module.exports = class DivertMode extends EventEmitter {
     this.NORMAL = 1;
     this.ECO = 2;
 
-    this.SERVICE_LEVEL1_VOLTAGE = 110;
     this.SERVICE_LEVEL2_VOLTAGE = 240;
-    this._voltage = this.SERVICE_LEVEL1_VOLTAGE;
+    this._voltage = this.SERVICE_LEVEL2_VOLTAGE;
 
     this.GRID_IE_RESERVE_POWER = 100;
 
@@ -65,7 +64,7 @@ module.exports = class DivertMode extends EventEmitter {
   }
 
   set service(service) {
-    this._voltage = service ? this.SERVICE_LEVEL1_VOLTAGE : this.SERVICE_LEVEL2_VOLTAGE;
+    this._voltage = this.SERVICE_LEVEL2_VOLTAGE;
   }
 
   set charge_rate(value) {
