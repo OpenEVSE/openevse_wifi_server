@@ -75,6 +75,7 @@ npm start -- --port 3000 --endpoint http://openevse.local/r
 
 Then point your browser at <http://localhost:3000/>
 
+
 ### Linking to GUI
 
 Quite often you will need to be developing the GUI (or other Node.JS modules) at the same time. This can be done by using [npm link](https://docs.npmjs.com/cli/link.html).
@@ -130,7 +131,11 @@ docker build --tag openevse .
 ```shell
 docker run --rm -it --name openevse -p 3000:3000/tcp openevse
 ```
+### Run in the background
 
+```shell
+docker run -d --rm --name openevse -p 3000:3000/tcp openevse --restart unless-stopped
+```
 ### Run with debug enabled
 
 ```shell
@@ -167,6 +172,34 @@ You can generate a self-signed certificate/key using an [on-line tool](https://w
 
 ```shell
 openssl req -nodes -new -x509 -keyout server.key -out server.cert
+```
+
+## Example Apache Reverse Proxy 
+
+```                                                   
+    <VirtualHost *:443>
+        ProxyPreserveHost On
+        ProxyPass / http://0.0.0.0:3000/
+        ProxyPassReverse / http://0.0.0.0:3000/
+        ServerName openevse.domain.com
+        SSLEngine on
+       SSLCertificateFile /etc/certificate/certificate.crt
+       SSLCertificateKeyFile /etc/certificate/key.key
+    </VirtualHost>
+```
+
+Modules required
+
+```
+a2enmod proxy
+a2enmod proxy_http
+a2enmod proxy_ajp
+a2enmod rewrite
+a2enmod deflate
+a2enmod headers
+a2enmod proxy_balancer
+a2enmod proxy_connect
+a2enmod proxy_html
 ```
 
 ***
